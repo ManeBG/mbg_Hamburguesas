@@ -1,12 +1,25 @@
 # config.py
 
-import pymysql
+from flask_sqlalchemy import SQLAlchemy
 
-def get_connection():
-    return pymysql.connect(
-        host="localhost",
-        user="admin",
-        password="Admin123!",
-        database="hamburguesas",
-        cursorclass=pymysql.cursors.DictCursor
-    )
+db = SQLAlchemy()
+
+# Cambia si usas otra contraseña o puerto
+DB_URI = "mysql+pymysql://admin:Admin123!@localhost/hamburguesas"
+
+
+
+
+
+# # config.py
+
+# import pymysql
+
+# def get_connection():
+#     return pymysql.connect(
+#         host="localhost",
+#         user="admin",
+#         password="Admin123!",
+#         database="hamburguesas",
+#         cursorclass=pymysql.cursors.DictCursor
+#     )

@@ -1,5 +1,3 @@
-# routes/pedido_routes.py
-
 from flask import Blueprint, request, jsonify
 from database.pedido_queries import guardar_pedido
 

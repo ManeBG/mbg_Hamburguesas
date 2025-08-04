@@ -1,38 +1,33 @@
-# database/pedido_queries.py
-
+from config import db
+from models import Pedido, DetallePedido
 import json
-from config import get_connection
 
-def guardar_pedido(pedido, total, nombre, telefono, direccion):
-    conn = get_connection()
+def guardar_pedido(pedido_items, total, nombre, telefono, direccion):
     try:
-        with conn.cursor() as cursor:
-            # Insertar pedido
-            sql_pedido = """
-                INSERT INTO pedidos (total, nombre_cliente, telefono, direccion_entrega)
-                VALUES (%s, %s, %s, %s)
-            """
-            cursor.execute(sql_pedido, (total, nombre, telefono, direccion))
-            pedido_id = cursor.lastrowid
+        # Crear el objeto pedido
+        nuevo_pedido = Pedido(
+            total=total,
+            nombre_cliente=nombre,
+            telefono=telefono,
+            direccion_entrega=direccion
+        )
+        db.session.add(nuevo_pedido)
+        db.session.flush()  # obtiene el id antes de commit
 
-            # Insertar detalles
-            for item in pedido:
-                sql_detalle = """
-                    INSERT INTO detalles_pedido (pedido_id, nombre_producto, toppings, sin_ingredientes, subtotal)
-                    VALUES (%s, %s, %s, %s, %s)
-                """
-                cursor.execute(sql_detalle, (
-                    pedido_id,
-                    item["nombre"],
-                    json.dumps(item["toppings"], ensure_ascii=False),
-                    json.dumps(item["sin_ingredientes"], ensure_ascii=False),
-                    item["total"]
-                ))
+        # Agregar detalles del pedido
+        for item in pedido_items:
+            detalle = DetallePedido(
+                pedido_id=nuevo_pedido.id,
+                nombre_producto=item["nombre"],
+                toppings=json.dumps(item["toppings"], ensure_ascii=False),
+                sin_ingredientes=json.dumps(item["sin_ingredientes"], ensure_ascii=False),
+                subtotal=item["total"]
+            )
+            db.session.add(detalle)
 
-            conn.commit()
-            return True
+        db.session.commit()
+        return True
     except Exception as e:
+        db.session.rollback()
         print("❌ Error al guardar pedido:", e)
         return False
-    finally:
-        conn.close()
