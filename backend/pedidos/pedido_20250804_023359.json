@@ -1,0 +1,14 @@
+{
+  "pedido": [
+    {
+      "nombre": "Ensalada Personalizada",
+      "total": 70,
+      "toppings": [
+        "pollo",
+        "aderezo italiano"
+      ],
+      "sin_ingredientes": []
+    }
+  ],
+  "total": 70
+}

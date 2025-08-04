@@ -1,0 +1,59 @@
+{
+  "menu": [
+    {
+      "id": 1,
+      "nombre": "Hamburguesa Clásica",
+      "precio_base": 100,
+      "ingredientes_base": [
+        { "nombre": "pan", "removible": false },
+        { "nombre": "carne", "removible": false },
+        { "nombre": "lechuga", "removible": true },
+        { "nombre": "jitomate", "removible": true }
+      ],
+      "toppings_opcionales": [
+        { "nombre": "queso", "precio": 10 },
+        { "nombre": "tocino", "precio": 12 },
+        { "nombre": "cebolla caramelizada", "precio": 8 },
+        { "nombre": "huevo", "precio": 10 }
+      ]
+    },
+    {
+      "id": 2,
+      "nombre": "Papas",
+      "precio_base": 35,
+      "ingredientes_base": [
+        { "nombre": "papas", "removible": false },
+        { "nombre": "cátsup", "removible": true }
+      ],
+      "toppings_opcionales": [
+        { "nombre": "queso derretido", "precio": 10 },
+        { "nombre": "tocino", "precio": 12 }
+      ]
+    },
+    {
+      "id": 3,
+      "nombre": "Ensalada Personalizada",
+      "precio_base": 50,
+      "ingredientes_base": [],
+      "toppings_opcionales": [
+        { "nombre": "lechuga", "precio": 0 },
+        { "nombre": "zanahoria", "precio": 0 },
+        { "nombre": "pepino", "precio": 0 },
+        { "nombre": "pollo", "precio": 15 },
+        { "nombre": "jamón", "precio": 12 },
+        { "nombre": "aderezo ranch", "precio": 5 },
+        { "nombre": "aderezo italiano", "precio": 5 }
+      ]
+    }
+  ],
+  "extras_disponibles": [
+    {
+      "nombre": "Papas clásicas",
+      "precio": 35
+    },
+    {
+      "nombre": "Refresco 500ml",
+      "precio": 20
+    }
+  ]
+}
