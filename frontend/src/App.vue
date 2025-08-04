@@ -49,8 +49,22 @@
       </ul>
       <p><strong>Total:</strong> ${{ totalGeneral }}</p>
 
+      <h3>📝 Datos del Cliente</h3>
+      <div class="form">
+        <label>Nombre:
+          <input v-model="nombreCliente" type="text" required />
+        </label>
+        <label>Teléfono:
+          <input v-model="telefonoCliente" type="text" required />
+        </label>
+        <label>Dirección:
+          <textarea v-model="direccionCliente" required></textarea>
+        </label>
+      </div>
+
       <button @click="enviarPedido">Enviar pedido</button>
     </div>
+
 
 
   </div>
@@ -72,28 +86,44 @@ const totalGeneral = computed(() =>
 )
 const mostrarResumen = ref(false)
 const enviarPedido = async () => {
+  if (!nombreCliente.value || !telefonoCliente.value || !direccionCliente.value) {
+    alert("Por favor llena todos los campos del cliente.");
+    return;
+  }
+
   try {
-    const res = await fetch('http://localhost:5000/api/pedido', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+    const res = await fetch("http://localhost:5000/api/pedido", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         pedido: carrito.value,
-        total: totalGeneral.value
+        total: totalGeneral.value,
+        nombre: nombreCliente.value,
+        telefono: telefonoCliente.value,
+        direccion: direccionCliente.value
       })
     })
 
-    if (!res.ok) throw new Error('Error al enviar pedido')
+    if (!res.ok) throw new Error("Error al enviar pedido")
 
     const data = await res.json()
-    alert('Pedido enviado: ' + data.mensaje)
+    alert("✅ Pedido enviado: " + data.mensaje)
 
+    // limpiar
     carrito.value = []
     mostrarResumen.value = false
+    nombreCliente.value = ""
+    telefonoCliente.value = ""
+    direccionCliente.value = ""
   } catch (err) {
-    alert('Hubo un error al enviar el pedido.')
+    alert("Hubo un error al enviar el pedido.")
     console.error(err)
   }
 }
+const nombreCliente = ref("")
+const telefonoCliente = ref("")
+const direccionCliente = ref("")
+
 
 
 
