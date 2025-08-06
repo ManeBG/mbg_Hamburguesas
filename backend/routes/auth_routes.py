@@ -5,7 +5,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 
 auth_bp = Blueprint("auth_bp", __name__)
 
-@auth_bp.route("/api/register", methods=["POST"])
+@auth_bp.route("/register", methods=["POST"])
 def register():
     data = request.json
 
@@ -24,7 +24,7 @@ def register():
 
     return jsonify({"mensaje": "Usuario registrado correctamente"})
 
-@auth_bp.route("/api/login", methods=["POST"])
+@auth_bp.route("/login", methods=["POST"])
 def login():
     data = request.json
     usuario = Usuario.query.filter_by(correo=data["correo"]).first()
@@ -40,7 +40,7 @@ def login():
         "nombre": usuario.nombre
     })
 
-@auth_bp.route("/api/logout", methods=["POST"])
+@auth_bp.route("/logout", methods=["POST"])
 def logout():
     session.clear()
     return jsonify({"mensaje": "Sesión cerrada"})

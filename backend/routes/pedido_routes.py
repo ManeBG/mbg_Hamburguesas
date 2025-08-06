@@ -12,8 +12,9 @@ def recibir_pedido():
     nombre = data.get("nombre")
     telefono = data.get("telefono")
     direccion_entrega = data.get("direccion_entrega")
+    user_id = data.get("user_id")  # 👈 Aquí se obtiene el user_id
 
-    exito = guardar_pedido(pedido, total, nombre, telefono, direccion_entrega)
+    exito = guardar_pedido(pedido, total, nombre, telefono, direccion_entrega, user_id)
 
     if exito:
         return jsonify({"mensaje": "Pedido guardado con éxito"})

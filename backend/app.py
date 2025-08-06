@@ -34,7 +34,7 @@ db.init_app(app)
 app.register_blueprint(pedido_bp)
 app.register_blueprint(estado_bp)
 app.register_blueprint(horario_bp)
-app.register_blueprint(auth_bp)
+app.register_blueprint(auth_bp, url_prefix="/auth")
 
 # Crear tablas si no existen
 with app.app_context():
