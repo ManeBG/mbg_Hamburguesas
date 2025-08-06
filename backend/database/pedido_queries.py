@@ -2,22 +2,23 @@ from common.db import db  # ✅ correcto
 from models.models import Pedido, DetallePedido
 import json
 
-def guardar_pedido(pedido_items, total, nombre, telefono, direccion_entrega):
+def guardar_pedido(pedido_items, total, nombre, telefono, direccion_entrega, user_id=None):
     try:
-        # Crear el objeto pedido
         nuevo_pedido = Pedido(
             nombre_cliente=nombre,
             telefono=telefono,
-            direccion_entrega=direccion_entrega,  # 👈 importante
+            direccion_entrega=direccion_entrega,
             total=total,
             estado="pendiente"
         )
 
+        if user_id:
+            nuevo_pedido.user_id = int(user_id)  # 👈 Esto enlaza el pedido al usuario
 
         db.session.add(nuevo_pedido)
-        db.session.flush()  # obtiene el id antes de commit
+        db.session.flush()
 
-        # Agregar detalles del pedido
+        # agregar detalles
         for item in pedido_items:
             detalle = DetallePedido(
                 pedido_id=nuevo_pedido.id,
@@ -26,7 +27,6 @@ def guardar_pedido(pedido_items, total, nombre, telefono, direccion_entrega):
                 sin_ingredientes=json.dumps(item["sin_ingredientes"], ensure_ascii=False),
                 subtotal=item["total"]
             )
-
             db.session.add(detalle)
 
         db.session.commit()
@@ -35,6 +35,7 @@ def guardar_pedido(pedido_items, total, nombre, telefono, direccion_entrega):
         db.session.rollback()
         print("❌ Error al guardar pedido:", e)
         return False
+
 
 
 def obtener_pedidos():

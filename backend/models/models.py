@@ -1,12 +1,16 @@
 from common.db import db
 from datetime import datetime
 
+
 class Usuario(db.Model):
-    __tablename__ = 'usuarios'
+    __tablename__ = "usuarios"
     id = db.Column(db.Integer, primary_key=True)
     nombre = db.Column(db.String(100), nullable=False)
-    correo = db.Column(db.String(120), unique=True, nullable=False)
-    password = db.Column(db.String(200), nullable=False)
+    correo = db.Column(db.String(100), unique=True, nullable=False)
+    password_hash = db.Column(db.String(255), nullable=False)
+    telefono = db.Column(db.String(20))
+    creado_en = db.Column(db.DateTime, default=datetime.utcnow)
+
 
 class Pedido(db.Model):
     __tablename__ = 'pedidos'
@@ -32,11 +36,13 @@ class DetallePedido(db.Model):
     subtotal = db.Column(db.Numeric(10, 2))
 
 class HorarioNegocio(db.Model):
-    __tablename__ = 'horarios_negocio'
+    __tablename__ = "horarios_negocio"
     id = db.Column(db.Integer, primary_key=True)
-    dia = db.Column(db.String(15), nullable=False)  # lunes, martes, etc.
-    abre = db.Column(db.Time, nullable=False)
-    cierra = db.Column(db.Time, nullable=False)
+    dia_semana = db.Column(db.String(20), nullable=False)
+    abre = db.Column(db.Time, nullable=True)
+    cierra = db.Column(db.Time, nullable=True)
+    activo = db.Column(db.Integer, nullable=False)  # 1 = abierto, 0 = cerrado
+
 
 class EstadoNegocio(db.Model):
     __tablename__ = "estado_negocio"

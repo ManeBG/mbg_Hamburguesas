@@ -1,7 +1,25 @@
 <template>
+  <div v-if="nombreUsuario">
+  👋 Hola, {{ nombreUsuario }} | <a href="#" @click="logout">Cerrar sesión</a>
+  </div>
+  <div v-else>
+    <p>👤 No has iniciado sesión</p>
+  </div>
+
   <div v-if="estadoNegocio === 'cerrado'" class="cerrado-banner">
     🚫 En este momento estamos cerrados. No se pueden hacer pedidos.
   </div>
+  <div class="horarios">
+    <h3>📅 Horarios de atención</h3>
+    <ul>
+      <li v-for="h in horarios" :key="h.dia">
+        <strong>{{ h.dia }}:</strong>
+        <span v-if="h.activo">{{ h.apertura }} - {{ h.cierre }}</span>
+        <span v-else class="cerrado">Cerrado</span>
+      </li>
+    </ul>
+  </div>
+
 
   <div class="container">
     <h1>Menú Interactivo</h1>
@@ -103,17 +121,19 @@ const totalGeneral = computed(() =>
 )
 
 const enviarPedido = async () => {
-  // 🚫 Bloquear por estado cerrado
+  // 🚫 Bloquear si el negocio está cerrado
   if (estadoNegocio.value !== "abierto") {
     alert("🚫 El negocio está cerrado. No se pueden enviar pedidos.");
     return;
   }
 
+  // Validar campos obligatorios
   if (!nombreCliente.value || !telefonoCliente.value || !direccionEntrega.value) {
     alert("Por favor llena todos los campos del cliente.");
     return;
   }
 
+  // Intentar enviar el pedido
   try {
     const res = await fetch("http://localhost:5000/api/pedido", {
       method: "POST",
@@ -123,23 +143,25 @@ const enviarPedido = async () => {
         total: totalGeneral.value,
         nombre: nombreCliente.value,
         telefono: telefonoCliente.value,
-        direccion_entrega: direccionEntrega.value
+        direccion_entrega: direccionEntrega.value,
+        user_id: localStorage.getItem("user_id") || null  // 👈 se manda si existe
       })
     })
 
-    if (!res.ok) throw new Error("Error al enviar pedido")
-
     const data = await res.json()
+
+    if (!res.ok) throw new Error(data.error || "Error al enviar pedido")
+
     alert("✅ Pedido enviado: " + data.mensaje)
 
-    // limpiar
+    // Limpiar formulario y carrito
     carrito.value = []
     mostrarResumen.value = false
     nombreCliente.value = ""
     telefonoCliente.value = ""
     direccionEntrega.value = ""
   } catch (err) {
-    alert("Hubo un error al enviar el pedido.")
+    alert("❌ Hubo un error al enviar el pedido.")
     console.error(err)
   }
 }
@@ -158,6 +180,31 @@ onMounted(async () => {
   menu.value = data.menu
   extras.value = data.extras_disponibles
 })
+
+
+const horarios = ref([])
+
+onMounted(async () => {
+  try {
+    const res = await fetch("http://localhost:5000/api/horarios")
+    horarios.value = await res.json()
+  } catch (err) {
+    console.error("Error al obtener horarios:", err)
+  }
+})
+
+const nombreUsuario = ref(localStorage.getItem("nombre"))
+
+const logout = () => {
+  fetch("http://localhost:5000/api/logout", {
+    method: "POST"
+  }).then(() => {
+    localStorage.clear()
+    location.reload()
+  })
+}
+
+
 </script>
 
 <style>
@@ -176,4 +223,18 @@ onMounted(async () => {
   border: 2px solid #a00;
   border-radius: 5px;
 }
+.horarios {
+  margin-top: 2rem;
+  padding: 1rem;
+  background: #414281;
+  border-radius: 8px;
+}
+.horarios ul {
+  padding-left: 1.2rem;
+}
+.cerrado {
+  color: red;
+  font-weight: bold;
+}
+
 </style>
