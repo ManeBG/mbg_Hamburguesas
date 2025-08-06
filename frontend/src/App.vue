@@ -1,4 +1,8 @@
 <template>
+  <div v-if="estadoNegocio === 'cerrado'" class="cerrado-banner">
+    🚫 En este momento estamos cerrados. No se pueden hacer pedidos.
+  </div>
+
   <div class="container">
     <h1>Menú Interactivo</h1>
 
@@ -18,24 +22,38 @@
         </li>
       </ul>
     </div>
-    <h2>🛒 Carrito</h2>
-    <div v-if="carrito.length === 0">
-      El carrito está vacío.
-    </div>
-    <div v-else>
-      <ul>
-        <li v-for="(item, index) in carrito" :key="index">
-          {{ item.nombre }} - ${{ item.total }}
-          <ul>
-            <li v-if="item.toppings.length">Toppings: {{ item.toppings.join(', ') }}</li>
-            <li v-if="item.sin_ingredientes.length">Sin: {{ item.sin_ingredientes.join(', ') }}</li>
-          </ul>
-        </li>
-      </ul>
-      <p><strong>Total general:</strong> ${{ totalGeneral }}</p>
-      <button @click="mostrarResumen = true">Confirmar pedido</button>
 
+    <!-- Carrito -->
+    <h2>🛒 Carrito</h2>
+
+    <div v-if="estadoNegocio === 'cerrado'">
+      <p>Estamos cerrados. El carrito está deshabilitado.</p>
     </div>
+
+    <div v-else>
+      <div v-if="carrito.length === 0">
+        El carrito está vacío.
+      </div>
+      <div v-else>
+        <ul>
+          <li v-for="(item, index) in carrito" :key="index">
+            {{ item.nombre }} - ${{ item.total }}
+            <ul>
+              <li v-if="item.toppings.length">Toppings: {{ item.toppings.join(', ') }}</li>
+              <li v-if="item.sin_ingredientes.length">Sin: {{ item.sin_ingredientes.join(', ') }}</li>
+            </ul>
+          </li>
+        </ul>
+        <p><strong>Total general:</strong> ${{ totalGeneral }}</p>
+        <button 
+          @click="estadoNegocio === 'abierto' ? mostrarResumen = true : alert('🚫 El negocio está cerrado.')"
+        >
+          Confirmar pedido
+        </button>
+      </div>
+    </div>
+
+    <!-- Resumen -->
     <div v-if="mostrarResumen">
       <h2>🧾 Resumen del Pedido</h2>
       <ul>
@@ -58,35 +76,40 @@
           <input v-model="telefonoCliente" type="text" required />
         </label>
         <label>Dirección:
-          <textarea v-model="direccionCliente" required></textarea>
+          <textarea v-model="direccionEntrega" required></textarea>
         </label>
       </div>
 
       <button @click="enviarPedido">Enviar pedido</button>
     </div>
-
-
-
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, computed } from 'vue'
 import PlatilloCard from './components/PlatilloCard.vue'
 import { carrito } from './store'
-import { computed } from 'vue'
-
-
-
 
 const menu = ref([])
 const extras = ref([])
+const mostrarResumen = ref(false)
+const nombreCliente = ref("")
+const telefonoCliente = ref("")
+const direccionEntrega = ref("")
+const estadoNegocio = ref("abierto")
+
 const totalGeneral = computed(() =>
   carrito.value.reduce((acc, item) => acc + item.total, 0)
 )
-const mostrarResumen = ref(false)
+
 const enviarPedido = async () => {
-  if (!nombreCliente.value || !telefonoCliente.value || !direccionCliente.value) {
+  // 🚫 Bloquear por estado cerrado
+  if (estadoNegocio.value !== "abierto") {
+    alert("🚫 El negocio está cerrado. No se pueden enviar pedidos.");
+    return;
+  }
+
+  if (!nombreCliente.value || !telefonoCliente.value || !direccionEntrega.value) {
     alert("Por favor llena todos los campos del cliente.");
     return;
   }
@@ -100,7 +123,7 @@ const enviarPedido = async () => {
         total: totalGeneral.value,
         nombre: nombreCliente.value,
         telefono: telefonoCliente.value,
-        direccion: direccionCliente.value
+        direccion_entrega: direccionEntrega.value
       })
     })
 
@@ -114,22 +137,24 @@ const enviarPedido = async () => {
     mostrarResumen.value = false
     nombreCliente.value = ""
     telefonoCliente.value = ""
-    direccionCliente.value = ""
+    direccionEntrega.value = ""
   } catch (err) {
     alert("Hubo un error al enviar el pedido.")
     console.error(err)
   }
 }
-const nombreCliente = ref("")
-const telefonoCliente = ref("")
-const direccionCliente = ref("")
-
-
-
 
 onMounted(async () => {
-  const res = await fetch('/menu.json')
-  const data = await res.json()
+  try {
+    const res = await fetch("http://localhost:5000/api/estado")
+    const data = await res.json()
+    estadoNegocio.value = data.estado
+  } catch (err) {
+    console.error("Error al obtener estado del local:", err)
+  }
+
+  const resMenu = await fetch('/menu.json')
+  const data = await resMenu.json()
   menu.value = data.menu
   extras.value = data.extras_disponibles
 })
@@ -140,5 +165,15 @@ onMounted(async () => {
   max-width: 800px;
   margin: auto;
   padding: 1rem;
+}
+.cerrado-banner {
+  background: #ffdddd;
+  color: #a00;
+  text-align: center;
+  font-weight: bold;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border: 2px solid #a00;
+  border-radius: 5px;
 }
 </style>
