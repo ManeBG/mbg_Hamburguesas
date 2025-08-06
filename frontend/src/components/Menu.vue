@@ -113,7 +113,6 @@ import { carrito } from '../store'
 
 
 const nombreCliente = ref("")
-const telefonoCliente = ref("")
 const direccionEntrega = ref("")
 const mostrarResumen = ref(false)
 
@@ -123,6 +122,8 @@ const extras = ref([])
 const horarios = ref([])
 const estadoNegocio = ref("abierto")
 const nombreUsuario = ref(localStorage.getItem("nombre") || null)
+const telefonoCliente = ref(localStorage.getItem("telefono") || "")
+
 
 
 
@@ -205,6 +206,9 @@ onMounted(async () => {
   // 🧠 Autocompletar nombre si está logueado
   if (nombreUsuario.value) {
     nombreCliente.value = nombreUsuario.value
+  }
+  if (localStorage.getItem("telefono")) {
+    telefonoCliente.value = localStorage.getItem("telefono")
   }
 })
 

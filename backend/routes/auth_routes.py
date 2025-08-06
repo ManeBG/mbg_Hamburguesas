@@ -37,7 +37,8 @@ def login():
     return jsonify({
         "mensaje": "Inicio de sesión exitoso",
         "user_id": usuario.id,
-        "nombre": usuario.nombre
+        "nombre": usuario.nombre,
+        "telefono": usuario.telefono
     })
 
 @auth_bp.route("/logout", methods=["POST"])

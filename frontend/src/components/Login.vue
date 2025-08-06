@@ -38,6 +38,7 @@ const login = async () => {
 
     localStorage.setItem("user_id", data.user_id)
     localStorage.setItem("nombre", data.nombre)  // ✅ ESTA ES LA QUE TE FALTA
+    localStorage.setItem("telefono", data.telefono)
     alert("✅ Bienvenido, sesión iniciada")
     error.value = ""
 
