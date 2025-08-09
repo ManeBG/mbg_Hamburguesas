@@ -16,6 +16,8 @@ from models.models import *  # puedes cambiar esto por imports explícitos si qu
 from routes.pedido_routes import pedido_bp
 from routes.estado_routes import estado_bp, horario_bp
 from routes.auth_routes import auth_bp
+from routes.direcciones_routes import dir_bp
+from routes.direcciones_routes import dir_bp as direcciones_bp  # ✅ nuevo
 
 app = Flask(__name__)
 
@@ -35,6 +37,7 @@ app.register_blueprint(pedido_bp)
 app.register_blueprint(estado_bp)
 app.register_blueprint(horario_bp)
 app.register_blueprint(auth_bp, url_prefix="/auth")
+app.register_blueprint(direcciones_bp)  # ✅ /api/direcciones
 
 # Crear tablas si no existen
 with app.app_context():
