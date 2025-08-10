@@ -1,52 +1,106 @@
-# routes/pedido_routes.py
-from flask import Blueprint, request, jsonify
-from services.orders_service import crear_pedido
-from models.models import Pedido
-from common.db import db
+# routes/pedidos_routes.py
+from flask import Blueprint, request, jsonify, session
+from decimal import Decimal
+from services.orders_service import (
+    crear_pedido as service_crear_pedido,
+    listar_pedidos_de_usuario,
+    actualizar_estado_pedido,
+    ESTADOS_VALIDOS
+)
 
-pedido_bp = Blueprint('pedido_bp', __name__)
+pedidos_bp = Blueprint("pedidos_bp", __name__, url_prefix="/api/pedidos")
 
-@pedido_bp.route("/api/pedido", methods=["POST"])
-def post_pedido():
-    data = request.get_json() or {}
+def _to_money_str(v) -> str:
+    # v puede ser Decimal, float o int
+    if isinstance(v, Decimal):
+        return f"{v:.2f}"
     try:
-        pedido = crear_pedido(data)  # <- mueve la lógica al service
+        return f"{float(v):.2f}"
+    except Exception:
+        return "0.00"
+
+def _pedido_to_json(p):
+    return {
+        "id": p.id,
+        "nombre_cliente": p.nombre_cliente,
+        "telefono": p.telefono,
+        "direccion_entrega": p.direccion_entrega,
+        "estado": p.estado,
+        "fecha": p.fecha.isoformat() if p.fecha else None,
+        "total": _to_money_str(p.total),
+        "detalles": [
+            {
+                "id": d.id,
+                "nombre_producto": d.nombre_producto,
+                "toppings": d.toppings or [],
+                "sin_ingredientes": d.sin_ingredientes or [],
+                "subtotal": _to_money_str(d.subtotal),
+            }
+            for d in p.detalles
+        ],
+    }
+
+# ------------------------
+# Crear un pedido
+# ------------------------
+@pedidos_bp.route("", methods=["POST"])
+def post_pedido():
+    data = request.get_json(silent=True) or {}
+    try:
+        pedido = service_crear_pedido(data)
         return jsonify({
             "mensaje": "Pedido registrado con éxito",
             "pedido_id": pedido.id,
-            "resumen": {
-                "cliente": pedido.nombre_cliente,
-                "telefono": pedido.telefono,
-                "direccion": pedido.direccion_entrega,
-                "total": float(pedido.total),
-                "estado": pedido.estado
-            }
+            "estado": pedido.estado,
+            "direccion_entrega": pedido.direccion_entrega,
+            "total": _to_money_str(pedido.total)
         }), 201
     except ValueError as e:
         return jsonify({"error": str(e)}), 400
     except Exception as e:
+        # Opcional: loggear e para debug
+        from common.db import db
         db.session.rollback()
         return jsonify({"error": "Error interno"}), 500
 
-
-@pedido_bp.route('/api/pedidos', methods=['GET'])
-@pedido_bp.route('/api/mis-pedidos', methods=['GET'])
+# ------------------------
+# Listar pedidos (admin por user_id)
+# ------------------------
+@pedidos_bp.route("", methods=["GET"])
 def listar_pedidos():
     user_id = request.args.get("user_id", type=int)
     if not user_id:
         return jsonify({"error": "user_id requerido"}), 400
-    filas = (Pedido.query
-             .filter_by(user_id=user_id)
-             .order_by(Pedido.fecha.desc())
-             .all())
-    out = [{
-        "id": p.id,
-        "fecha": p.fecha.isoformat(),
-        "total": float(p.total),
-        "estado": p.estado,
-        "direccion": p.direccion_entrega
-    } for p in filas]
-    return jsonify(out)
+    pedidos = listar_pedidos_de_usuario(user_id)
+    return jsonify([_pedido_to_json(p) for p in pedidos]), 200
+
+# ------------------------
+# Listar mis pedidos (sesión)
+# ------------------------
+@pedidos_bp.route("/mios", methods=["GET"])
+def listar_mis_pedidos():
+    user_id = session.get("user_id")
+    if not user_id:
+        return jsonify({"error": "No autenticado"}), 401
+    pedidos = listar_pedidos_de_usuario(user_id)
+    return jsonify([_pedido_to_json(p) for p in pedidos]), 200
+
+# ------------------------
+# Cambiar estado de un pedido
+# ------------------------
+@pedidos_bp.route("/<int:pedido_id>/status", methods=["POST"])
+def set_estado_pedido(pedido_id):
+    data = request.get_json(silent=True) or {}
+    estado = data.get("estado")
+    if estado not in ESTADOS_VALIDOS:
+        return jsonify({"error": "estado inválido", "permitidos": sorted(list(ESTADOS_VALIDOS))}), 400
+
+    ok = actualizar_estado_pedido(pedido_id, estado)
+    if not ok:
+        return jsonify({"error": "pedido no encontrado"}), 404
+
+    return jsonify({"ok": True, "pedido_id": pedido_id, "nuevo_estado": estado}), 200
+
 
 
 

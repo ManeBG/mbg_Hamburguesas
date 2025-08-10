@@ -1,6 +1,8 @@
 from common.db import db
 from datetime import datetime
 from models.mixins import ToDictMixin
+from sqlalchemy import Index
+
 
 
 class Usuario(db.Model):
@@ -13,19 +15,35 @@ class Usuario(db.Model):
     creado_en = db.Column(db.DateTime, default=datetime.utcnow)
 
 
-class Pedido(db.Model):
+class Pedido(ToDictMixin, db.Model):
     __tablename__ = 'pedidos'
     id = db.Column(db.Integer, primary_key=True)
     nombre_cliente = db.Column(db.String(100), nullable=False)
     direccion_entrega = db.Column(db.String(200), nullable=False)  # snapshot SIEMPRE
     telefono = db.Column(db.String(20), nullable=False)
-    total = db.Column(db.Float, nullable=False)
-    estado = db.Column(db.String(20), default='pendiente')
-    fecha = db.Column(db.DateTime, default=datetime.utcnow)
-    user_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True)
-    address_id = db.Column(db.Integer, nullable=True)
+    # Mejor dinero con DECIMAL/Numeric:
+    total = db.Column(db.Numeric(10, 2), nullable=False)
+    estado = db.Column(db.String(20), default='pendiente', index=True)
+    fecha = db.Column(db.DateTime, default=datetime.utcnow, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('usuarios.id'), nullable=True, index=True)
+    # FK real a direcciones_envio
+    address_id = db.Column(db.Integer, db.ForeignKey('direcciones_envio.id'), nullable=True)
 
-    detalles = db.relationship('DetallePedido', backref='pedido', lazy=True)
+    detalles = db.relationship(
+        'DetallePedido',
+        backref='pedido',
+        lazy='selectin',
+        cascade='all, delete-orphan'
+    )
+
+    def as_dict(self):
+        """Base con to_dict + lista de detalles."""
+        base = self.to_dict()
+        base["detalles"] = [d.to_dict() for d in self.detalles]
+        return base
+
+# Índices compuestos útiles (opcional pero recomendado)
+Index("ix_pedidos_user_fecha", Pedido.user_id, Pedido.fecha.desc())
 
 class DetallePedido(db.Model):
     __tablename__ = 'detalles_pedido'  # ✔️ nombre correcto
@@ -35,7 +53,8 @@ class DetallePedido(db.Model):
     nombre_producto = db.Column(db.String(100), nullable=False)
     toppings = db.Column(db.JSON)
     sin_ingredientes = db.Column(db.JSON)
-    subtotal = db.Column(db.Numeric(10, 2))
+    subtotal = db.Column(db.Numeric(10, 2), nullable=False)
+
 
 class HorarioNegocio(db.Model):
     __tablename__ = "horarios_negocio"
@@ -57,7 +76,7 @@ class EstadoNegocio(db.Model):
 class DireccionEnvio(ToDictMixin, db.Model):
     __tablename__ = "direcciones_envio"
     id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey("usuarios.id"), nullable=False, index=True)
     alias = db.Column(db.String(50))
     calle = db.Column(db.Text)
     referencias = db.Column(db.Text)

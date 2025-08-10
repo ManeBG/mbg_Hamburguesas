@@ -13,7 +13,7 @@ from common.db import db
 from models.models import *  # puedes cambiar esto por imports explícitos si quieres más control
 
 # Blueprints
-from routes.pedido_routes import pedido_bp
+from routes.pedidos_routes import pedidos_bp
 from routes.estado_routes import estado_bp, horario_bp
 from routes.auth_routes import auth_bp
 from routes.direcciones_routes import dir_bp
@@ -33,7 +33,7 @@ Session(app)
 db.init_app(app)
 
 # Registrar Blueprints
-app.register_blueprint(pedido_bp)
+app.register_blueprint(pedidos_bp)
 app.register_blueprint(estado_bp)
 app.register_blueprint(horario_bp)
 app.register_blueprint(auth_bp, url_prefix="/auth")
