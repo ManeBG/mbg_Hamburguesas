@@ -1,7 +1,7 @@
 import { createApp } from 'vue'
 import './style.css'
 import App from './App.vue'
-import router from './router/router.js'  // ✅ usa la ruta correcta si se llama router.js
+import router from './router/router'  // ✅ sin .js?? usa la ruta correcta si se llama router.js
 
 const app = createApp(App)
 app.use(router)               // ✅ aquí conectas Vue con el enrutador

@@ -8,22 +8,41 @@ from services.addresses_service import (
 
 dir_bp = Blueprint("dir_bp", __name__, url_prefix="/api/direcciones")
 
+
 @dir_bp.route("", methods=["GET"])
 def get_direcciones():
     user_id = request.args.get("user_id", type=int)
     if not user_id:
         return jsonify({"error": "user_id requerido"}), 400
-    direcciones = listar_direcciones(user_id)  # ← lista de modelos
-    return jsonify([d.to_dict() for d in direcciones])  # ← usar to_dict()
+
+    direcciones = listar_direcciones(user_id)
+
+    def serialize(d):
+        return {
+            "id": d.id,
+            "calle": d.calle,
+            "colonia": d.colonia,
+            "ciudad": d.ciudad,
+            "codigo_postal": getattr(d, "codigo_postal", None),
+            "referencias": getattr(d, "referencias", None),
+            "activo": getattr(d, "activo", True),
+        }
+
+    return jsonify([serialize(d) for d in direcciones]), 200
+
 
 @dir_bp.route("", methods=["POST"])
 def post_direccion():
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     user_id = data.get("user_id")
     if not user_id:
         return jsonify({"error": "user_id requerido"}), 400
-    d = crear_direccion(user_id, data)  # ← regresa el modelo
-    return jsonify({"mensaje": "Dirección creada", "id": d.id, "direccion": d.to_dict()}), 201
+
+    # OJO: asegúrate que la firma de tu servicio coincida con lo que llamas aquí
+    # si tu servicio espera solo `data`, llámalo así.
+    d = crear_direccion(data)  # ← ajusta si tu servicio usa (user_id, data)
+
+    return jsonify({"id": d.id}), 201
 
 @dir_bp.route("/<int:dir_id>", methods=["PUT", "PATCH"])
 def put_direccion(dir_id):
