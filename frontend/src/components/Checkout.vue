@@ -6,7 +6,8 @@ import { abrirWhatsResumen, telefonoParaWhats } from "@/utils/whats";
 import { carrito } from "@/store";
 import { useRouter } from 'vue-router'
 import { vaciarCarrito } from '@/store' // ya tienes carrito; añade vaciarCarrito
-
+import Swal from 'sweetalert2'
+import 'sweetalert2/dist/sweetalert2.min.css'
 
 const form = ref({ nombre: "", telefono: "" });
 const userId = ref(localStorage.getItem("user_id") || null);
@@ -120,28 +121,49 @@ const pedidoConfirmado = ref(false);  // deshabilita Confirmar cuando ya se cre�
 const yaAbriWhats = ref(false);       // cambia a "Reenviar al negocio"
 
 async function confirmarPedido() {
-  if (enviando.value || pedidoConfirmado.value) return; // anti-doble click
-  let payload;
+  if (enviando.value || pedidoConfirmado.value) return;
+
   try {
     enviando.value = true;
-    payload = await armaPayload();
+    const payload = await armaPayload();   // aquí lanzas los errores
     const resp = await crearPedido(payload);
+
     if (!resp.ok) {
-      alert(resp.error || "No se pudo crear el pedido");
+      await Swal.fire({
+        icon: 'error',
+        title: 'No se pudo crear el pedido',
+        text: resp.error || 'Ocurrió un problema',
+      });
       return;
     }
-    dataPedido.value = resp.data;
-    pedidoConfirmado.value = true;  // <- bloquea el botón Confirmar
 
-    if (abrirWhatsAuto.value) {
-      enviarAlNegocio();           // abre Whats una sola vez
-    }
+    dataPedido.value = resp.data;
+    pedidoConfirmado.value = true;
+
+    if (abrirWhatsAuto.value) enviarAlNegocio();
   } catch (e) {
-    alert(e.message);
+    const msg = String(e?.message || e);
+
+    // 👇 Detecta los mensajes de dirección y usa un alert específico
+    if (msg.includes('Selecciona una dirección') || msg.includes('Falta la dirección de entrega')) {
+      await Swal.fire({
+        icon: 'warning',
+        title: 'Falta la dirección',
+        html: 'Elige una <b>dirección guardada</b>, crea una <b>nueva</b> o escribe la <b>dirección en texto</b>.',
+        confirmButtonText: 'Entendido',
+      });
+    } else {
+      await Swal.fire({
+        icon: 'error',
+        title: 'No se puede confirmar',
+        text: msg,
+      });
+    }
   } finally {
     enviando.value = false;
   }
 }
+
 
 
 
@@ -190,27 +212,32 @@ function compartirConCliente() {
   });
 }
 
-function nuevoPedido(limpiarCarrito = true) {
-  // 1) Si pide limpiar, pregunta y sal si cancela
-  if (limpiarCarrito) {
-    const ok = confirm('¿Limpiar carrito para un nuevo pedido?')
-    if (!ok) return
-    try { vaciarCarrito() } catch {}
+async function nuevoPedido({ limpiar = true, pedirConfirmacion = true, irMenu = true } = {}) {
+  try {
+    if (limpiar && pedirConfirmacion) {
+      const { isConfirmed } = await Swal.fire({
+        title: '¿Limpiar carrito para un nuevo pedido?',
+        showCancelButton: true,
+        confirmButtonText: 'Sí, limpiar',
+        cancelButtonText: 'Cancelar'
+      })
+      if (!isConfirmed) return
+    }
+    if (limpiar) { try { vaciarCarrito() } catch {} }
+
+    dataPedido.value = null
+    pedidoConfirmado.value = false
+    yaAbriWhats.value = false
+    seleccion.value = userId.value ? '' : 'texto'
+    direccionTexto.value = ''
+    nueva.value = { calle:'', colonia:'', ciudad:'', referencias:'', guardar:true }
+
+    if (irMenu) await router.push('/').catch(() => {})
+  } catch (e) {
+    console.error(e)
   }
-
-  // 2) Resetear estado del checkout (no borramos nombre/tel a propósito)
-  dataPedido.value = null
-  pedidoConfirmado.value = false
-  yaAbriWhats.value = false
-
-  // reset de selección de dirección
-  seleccion.value = userId.value ? "" : "texto"
-  direccionTexto.value = ""
-  nueva.value = { calle: "", colonia: "", ciudad: "", referencias: "", guardar: true }
-
-  // 3) Ir al menú
-  router.push('/') // o { name: 'menu' } si tienes la ruta nombrada
 }
+
 
 
 
@@ -279,7 +306,10 @@ function nuevoPedido(limpiarCarrito = true) {
         </button>
     <!-- ❌ Quita el botón de "Compartir con el cliente" si no lo usas -->
         <!-- Nuevo pedido: limpia carrito y regresa al menú -->
-        <button @click="nuevoPedido(true)">Nuevo pedido</button>
+        <button type="button" @click="nuevoPedido({ limpiar:true, pedirConfirmacion:true, irMenu:true })">
+            Nuevo pedido
+        </button>
+
     </div>
 
 </div>

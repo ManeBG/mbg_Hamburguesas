@@ -38,11 +38,17 @@ def post_direccion():
     if not user_id:
         return jsonify({"error": "user_id requerido"}), 400
 
-    # OJO: asegúrate que la firma de tu servicio coincida con lo que llamas aquí
-    # si tu servicio espera solo `data`, llámalo así.
-    d = crear_direccion(data)  # ← ajusta si tu servicio usa (user_id, data)
+    # ✨ ahora sí: pasa user_id y data
+    try:
+        d = crear_direccion(int(user_id), data)
+    except ValueError as ve:
+        return jsonify({"error": str(ve)}), 400
+    except Exception:
+        return jsonify({"error": "Server error"}), 500
 
+    # responde JSON minimal y estable
     return jsonify({"id": d.id}), 201
+
 
 @dir_bp.route("/<int:dir_id>", methods=["PUT", "PATCH"])
 def put_direccion(dir_id):
