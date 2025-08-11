@@ -138,7 +138,11 @@ function enviarAlNegocio() {
     nombre: form.value.nombre,
     telefono: form.value.telefono,
     items: (carritoItems.value || []).map(i => ({
-      nombre_producto: i.nombre, cantidad: 1, subtotal: i.total
+      nombre_producto: i.nombre,
+      cantidad: 1,
+      subtotal: i.total,
+      toppings: i.toppings || [],
+      sin_ingredientes: i.sin_ingredientes || []
     })),
     total: dataPedido.value.total,
     direccionEntrega: dataPedido.value.direccion_entrega
@@ -155,12 +159,17 @@ function compartirConCliente() {
     nombre: form.value.nombre,
     telefono: form.value.telefono,
     items: (carritoItems.value || []).map(i => ({
-      nombre_producto: i.nombre, cantidad: 1, subtotal: i.total
+      nombre_producto: i.nombre,
+      cantidad: 1,
+      subtotal: i.total,
+      toppings: i.toppings || [],
+      sin_ingredientes: i.sin_ingredientes || []
     })),
     total: dataPedido.value.total,
     direccionEntrega: dataPedido.value.direccion_entrega
   });
 }
+
 </script>
 
 
@@ -183,7 +192,9 @@ function compartirConCliente() {
           <option value="nueva">+ Nueva dirección...</option>
           <option value="texto">Usar texto libre</option>
         </select>
-
+        <p v-if="userId && direcciones.length === 0" style="margin-top:6px">
+            No tienes direcciones guardadas aún.
+        </p>
         <!-- Nueva dirección -->
         <div v-if="seleccion==='nueva'" style="margin-top:8px; display:grid; gap:6px; max-width:420px">
           <input v-model="nueva.calle" placeholder="Calle y número">
@@ -215,9 +226,9 @@ function compartirConCliente() {
       Abrir Whats al crear pedido
     </label>
 
-    <div v-if="dataPedido" class="mt-3" style="display:flex; gap:8px">
+    <!-- <div v-if="dataPedido" class="mt-3" style="display:flex; gap:8px">
       <button @click="enviarAlNegocio">Enviar al negocio</button>
       <button @click="compartirConCliente">Compartir con el cliente</button>
-    </div>
+    </div> -->
   </div>
 </template>
