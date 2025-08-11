@@ -4,9 +4,13 @@ import { crearPedido } from "@/api/pedidos";
 import { listarDirecciones, crearDireccion } from "@/api/direcciones";
 import { abrirWhatsResumen, telefonoParaWhats } from "@/utils/whats";
 import { carrito } from "@/store";
+import { useRouter } from 'vue-router'
+import { vaciarCarrito } from '@/store' // ya tienes carrito; añade vaciarCarrito
+
 
 const form = ref({ nombre: "", telefono: "" });
 const userId = ref(localStorage.getItem("user_id") || null);
+const router = useRouter()
 
 const carritoItems = carrito;
 const totalCarrito = computed(() => carritoItems.value.reduce((a, i) => a + Number(i.total || 0), 0));
@@ -111,24 +115,36 @@ async function armaPayload() {
   throw new Error("Selecciona una dirección o escribe la dirección de entrega");
 }
 
+const enviando = ref(false);          // evita doble click durante el POST
+const pedidoConfirmado = ref(false);  // deshabilita Confirmar cuando ya se creó
+const yaAbriWhats = ref(false);       // cambia a "Reenviar al negocio"
+
 async function confirmarPedido() {
+  if (enviando.value || pedidoConfirmado.value) return; // anti-doble click
   let payload;
   try {
+    enviando.value = true;
     payload = await armaPayload();
+    const resp = await crearPedido(payload);
+    if (!resp.ok) {
+      alert(resp.error || "No se pudo crear el pedido");
+      return;
+    }
+    dataPedido.value = resp.data;
+    pedidoConfirmado.value = true;  // <- bloquea el botón Confirmar
+
+    if (abrirWhatsAuto.value) {
+      enviarAlNegocio();           // abre Whats una sola vez
+    }
   } catch (e) {
     alert(e.message);
-    return;
+  } finally {
+    enviando.value = false;
   }
-
-  const resp = await crearPedido(payload);
-  if (!resp.ok) {
-    alert(resp.error || "No se pudo crear el pedido");
-    return;
-  }
-  dataPedido.value = resp.data;
-
-  if (abrirWhatsAuto.value) enviarAlNegocio();
 }
+
+
+
 
 function enviarAlNegocio() {
   if (!dataPedido.value) return;
@@ -147,7 +163,11 @@ function enviarAlNegocio() {
     total: dataPedido.value.total,
     direccionEntrega: dataPedido.value.direccion_entrega
   });
+  yaAbriWhats.value = true; // ahora el botón dirá "Reenviar..."
 }
+
+
+
 
 function compartirConCliente() {
   if (!dataPedido.value) return;
@@ -170,13 +190,36 @@ function compartirConCliente() {
   });
 }
 
+function nuevoPedido(limpiarCarrito = true) {
+  // 1) Si pide limpiar, pregunta y sal si cancela
+  if (limpiarCarrito) {
+    const ok = confirm('¿Limpiar carrito para un nuevo pedido?')
+    if (!ok) return
+    try { vaciarCarrito() } catch {}
+  }
+
+  // 2) Resetear estado del checkout (no borramos nombre/tel a propósito)
+  dataPedido.value = null
+  pedidoConfirmado.value = false
+  yaAbriWhats.value = false
+
+  // reset de selección de dirección
+  seleccion.value = userId.value ? "" : "texto"
+  direccionTexto.value = ""
+  nueva.value = { calle: "", colonia: "", ciudad: "", referencias: "", guardar: true }
+
+  // 3) Ir al menú
+  router.push('/') // o { name: 'menu' } si tienes la ruta nombrada
+}
+
+
+
 </script>
 
 
 <template>
   <div style="padding:16px">
     <h1>Checkout</h1>
-
     <label>Nombre: <input v-model="form.nombre" /></label><br>
     <label>Teléfono: <input v-model="form.telefono" /></label><br>
 
@@ -219,16 +262,25 @@ function compartirConCliente() {
 
     <p>Total: ${{ Number(totalCarrito).toFixed(2) }}</p>
 
-    <button @click="confirmarPedido">Confirmar pedido</button>
+    <!-- Confirmar: deshabilitado si ya se creó -->
+    <button @click="confirmarPedido" :disabled="enviando || pedidoConfirmado">
+        {{ enviando ? 'Enviando...' : (pedidoConfirmado ? 'Pedido creado' : 'Confirmar pedido') }}
+    </button>
 
     <label class="ml-2">
-      <input type="checkbox" v-model="abrirWhatsAuto" />
-      Abrir Whats al crear pedido
+        <input type="checkbox" v-model="abrirWhatsAuto" />
+        Abrir Whats al crear pedido
     </label>
 
-    <!-- <div v-if="dataPedido" class="mt-3" style="display:flex; gap:8px">
-      <button @click="enviarAlNegocio">Enviar al negocio</button>
-      <button @click="compartirConCliente">Compartir con el cliente</button>
-    </div> -->
-  </div>
+    <!-- Después de crear pedido: solo Whats -->
+    <div v-if="dataPedido" class="mt-3" style="display:flex; gap:8px">
+        <button @click="enviarAlNegocio">
+            {{ yaAbriWhats ? 'Reenviar al negocio' : 'Enviar al negocio' }}
+        </button>
+    <!-- ❌ Quita el botón de "Compartir con el cliente" si no lo usas -->
+        <!-- Nuevo pedido: limpia carrito y regresa al menú -->
+        <button @click="nuevoPedido(true)">Nuevo pedido</button>
+    </div>
+
+</div>
 </template>
