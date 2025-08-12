@@ -103,7 +103,22 @@ def set_estado_pedido(pedido_id):
 
 
 
+@pedidos_bp.route("/<int:pedido_id>/status", methods=["PATCH", "POST"])
+def cambiar_estado(pedido_id):
+    data = request.get_json(silent=True) or {}
+    nuevo = (data.get("estado") or "").strip()
+    if not nuevo:
+        return jsonify({"error": "Falta 'estado'"}), 400
 
+    try:
+        ok = actualizar_estado_pedido(pedido_id, nuevo)
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+    if not ok:
+        return jsonify({"error": "Pedido no encontrado"}), 404
+
+    return jsonify({"ok": True, "pedido_id": pedido_id, "estado": nuevo}), 200
 
 
 
