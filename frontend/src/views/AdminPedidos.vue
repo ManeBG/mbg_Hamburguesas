@@ -81,8 +81,9 @@
   </div>
 </template>
 
+
 <script setup>
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import Swal from 'sweetalert2'
 
 const pedidos = ref([])
@@ -93,6 +94,29 @@ const page = ref(1)
 const pageSize = ref(20)
 const total = ref(0)
 const detallesAbiertos = ref(new Set())
+
+let timer = null
+
+onMounted(() => {
+  cargar()
+  startAutoRefresh()
+})
+onUnmounted(() => {
+  stopAutoRefresh()
+})
+
+function startAutoRefresh(){
+  stopAutoRefresh()
+  if (typeof window === 'undefined') return
+  timer = window.setInterval(() => {
+    // si la pestaña está oculta, no spameamos fetch
+    if (typeof document !== 'undefined' && document.hidden) return
+    cargar()
+  }, 10000)
+}
+function stopAutoRefresh(){
+  if (timer) { clearInterval(timer); timer = null }
+}
 
 function badgeStyle(estado){
   const map = {
@@ -128,9 +152,15 @@ function nextEstados(actual){
 }
 function formatearFecha(ts){ try { return new Date(ts).toLocaleString() } catch { return ts } }
 function formatoTel(t){ return t ? `${t.slice(0,2)} ${t.slice(2,6)} ${t.slice(6)}` : '—' }
-function toggleDetalles(id){ detallesAbiertos.value.has(id) ? detallesAbiertos.value.delete(id) : detallesAbiertos.value.add(id) }
+function toggleDetalles(id){
+  // Set no es reactivo por sí solo: recreamos para forzar render
+  const s = new Set(detallesAbiertos.value)
+  s.has(id) ? s.delete(id) : s.add(id)
+  detallesAbiertos.value = s
+}
 
 async function cargar(){
+  if (cargando.value) return
   cargando.value = true
   try{
     const params = new URLSearchParams()
@@ -138,6 +168,7 @@ async function cargar(){
     if (q.value) params.set('q', q.value)
     params.set('page', String(page.value))
     params.set('page_size', String(pageSize.value))
+
     const res = await fetch(`/api/admin/pedidos?${params.toString()}`)
     const j = await res.json()
     pedidos.value = j.pedidos || []
@@ -151,35 +182,67 @@ async function cargar(){
 }
 
 async function cambiarEstado(p, nuevo){
+  if (nuevo === 'cancelado') {
+    const r = await Swal.fire({
+      title:'¿Cancelar pedido?',
+      text:'Esta acción no se puede deshacer',
+      icon:'warning', showCancelButton:true, confirmButtonText:'Sí, cancelar'
+    })
+    if (!r.isConfirmed) return
+  }
   try{
-    const res = await fetch(`/api/pedidos/${p.id}/status`, {
+    const j = await fetchJSON(`/api/pedidos/${p.id}/status`, {
       method:'PATCH',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({ estado: nuevo })
     })
-    const j = await res.json()
-    if (!res.ok) throw new Error(j?.error || 'No se pudo actualizar el estado')
-
-    p.estado = nuevo
+    p.estado = j.estado || nuevo
     Swal.fire({ toast:true, position:'top-end', timer:1500, showConfirmButton:false, icon:'success',
-      title:`Pedido #${p.id} → ${etiquetaEstado(nuevo)}` })
+      title:`Pedido #${p.id} → ${etiquetaEstado(p.estado)}` })
   }catch(err){
     console.error(err)
-    Swal.fire('Error', err.message, 'error')
+    Swal.fire('Error', String(err.message || err), 'error')
   }
 }
 
-function abrirWhats(p){
-  const tel = `52${(p.telefono || '').replace(/\D/g,'')}`
-  const texto = encodeURIComponent(
-    `Hola ${p.nombre || ''}, tu pedido #${p.id} está ${etiquetaEstado(p.estado)}.\nTotal: $${Number(p.total).toFixed(2)}\n` +
-    (p.items?.length ? p.items.map(it => `• ${it.cantidad || 1}× ${it.producto}`).join('\n') : '')
-  )
-  window.open(`https://wa.me/${tel}?text=${texto}`, '_blank')
+async function fetchJSON(url, options){
+  const res = await fetch(url, options)
+  const text = await res.text()
+  if (!res.ok) throw new Error(`HTTP ${res.status}: ${text.slice(0,200)}`)
+  try { return JSON.parse(text) } catch { throw new Error(`Respuesta no JSON: ${text.slice(0,200)}`) }
 }
 
-onMounted(cargar)
+function abrirWhats(p){
+  const digits = String(p.telefono || '').replace(/\D/g,'')
+  if (digits.length !== 10) {
+    Swal.fire('Teléfono inválido', 'Debe tener 10 dígitos (MX)', 'warning')
+    return
+  }
+  const tel = `52${digits}`
+  const lineas = [
+    `Hola ${p.nombre || ''} 👋`,
+    `Tu pedido #${p.id} está ${etiquetaEstado(p.estado)}.`,
+    p.direccion ? `Dirección: ${p.direccion}` : null,
+    '',
+    ...(p.items?.length
+      ? p.items.map(it => {
+          const parts = []
+          parts.push(`${it.cantidad || 1}× ${it.producto}`)
+          if (it.toppings?.length) parts.push(`con ${it.toppings.join(', ')}`)
+          if (it.sin?.length) parts.push(`sin ${it.sin.join(', ')}`)
+          return `• ${parts.join(' — ')}`
+        })
+      : ['• (sin detalle de items)']
+    ),
+    '',
+    `Total: $${Number(p.total).toFixed(2)}`
+  ].filter(Boolean)
+
+  const texto = encodeURIComponent(lineas.join('\n'))
+  window.open(`https://wa.me/${tel}?text=${texto}`, '_blank', 'noopener,noreferrer')
+}
 </script>
+
 
 <style scoped>
 .title{ font-weight:700; font-size:1.25rem; }
@@ -189,12 +252,12 @@ onMounted(cargar)
 .btn-ghost{ border:1px solid #070707; background:rgb(7, 7, 7); border-radius:8px; padding:.35rem .6rem; }
 .tbl{ width:100%; border-collapse:collapse; }
 .tbl th,.tbl td{ text-align:left; padding:.5rem .5rem; border-bottom:1px solid #0d0d0e; vertical-align:top; }
-.muted{ font-size:12px; color:#6b7280; max-width:520px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.muted{ font-size:12px; color:#000000; max-width:520px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .strong{ font-weight:600; }
 .acciones{ display:flex; flex-wrap:wrap; gap:.4rem; }
-.detalles{ background:#f7f7f8; }
+.detalles{ background:#727274; }
 .lista-detalles{ display:grid; gap:.5rem; padding:.75rem; margin:0; }
-.item{ border:1px solid #e5e7eb; border-radius:8px; padding:.5rem .6rem; background:white; list-style:none; }
+.item{ border:1px solid #e5e7eb; border-radius:8px; padding:.5rem .6rem; background:rgb(175, 141, 28); list-style:none; }
 .paginador{ margin-top:.75rem; display:flex; align-items:center; gap:.5rem; }
 .badge{ display:inline-block; }
 </style>
