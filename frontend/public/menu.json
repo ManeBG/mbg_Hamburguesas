@@ -3,6 +3,7 @@
     {
       "id": 1,
       "nombre": "Hamburguesa Clásica",
+      "img": "/images/hamburguesa.jpg",
       "precio_base": 100,
       "ingredientes_base": [
         { "nombre": "pan", "removible": false },
@@ -20,6 +21,7 @@
     {
       "id": 2,
       "nombre": "Papas",
+      "img": "/images/papas.jpg",
       "precio_base": 35,
       "ingredientes_base": [
         { "nombre": "papas", "removible": false },
@@ -33,6 +35,7 @@
     {
       "id": 3,
       "nombre": "Ensalada Personalizada",
+      "img": "/images/ensaladaa.jpg",
       "precio_base": 50,
       "ingredientes_base": [],
       "toppings_opcionales": [

@@ -95,17 +95,27 @@ function agregarAlCarrito(item){
     </section>
 
     <!-- Menú -->
-    <h1>Menú Interactivo</h1>
-    <div v-if="(menu || []).length === 0">Cargando menú...</div>
+    <!-- Menú -->
+    <h1 class="mb-4 text-center text-danger fw-bold">🍔 Nuestro Menú</h1>
 
-    <div v-else class="menu-grid">
-      <PlatilloCard
+    <div v-if="(menu || []).length === 0" class="text-center text-muted">
+      Cargando menú...
+    </div>
+
+    <div v-else class="row g-4">
+      <div
+        class="col-12 col-sm-6 col-md-4"
         v-for="platillo in menu"
         :key="platillo.id"
-        :platillo="platillo"
-        @add="agregarAlCarrito"
-      />
+      >
+        <PlatilloCard
+          :platillo="platillo"
+          @add="agregarAlCarrito"
+        />
+      </div>
     </div>
+
+
 
     <!-- Extras -->
     <h2 class="mt-1">Extras disponibles</h2>
@@ -150,7 +160,7 @@ function agregarAlCarrito(item){
                 </ul>
               </div>
 
-              <button class="btn btn-ghost" @click="quitarDelCarrito(index)">Quitar</button>
+              <button class="btn btn-outline-secondary" @click="quitarDelCarrito(index)">Quitar</button>
             </li>
           </ul>
 
@@ -161,7 +171,7 @@ function agregarAlCarrito(item){
             <!-- Botones centrados y separados -->
             <div class="actions-center">
               <router-link class="btn btn-primary btn-lg" to="/checkout">Ir a Checkout</router-link>
-              <button class="btn btn-ghost btn-lg" @click="vaciarCarrito">Vaciar carrito</button>
+              <button class="btn btn-outline-danger btn-lg" @click="vaciarCarrito">Vaciar carrito</button>
             </div>
           </div>
         </div>
@@ -221,11 +231,25 @@ function agregarAlCarrito(item){
 /* Carrito Desktop */
 .cart-desktop{
   margin-top: 1rem;
-  padding: 1rem;
+  padding: 1rem 1.2rem;
   border: 1px solid #222;
   border-radius: 14px;
   background: #1a1a1a;
+  color: #f5f5f5;
+  font-size: 0.95rem;
+  line-height: 1.4;
 }
+.cart-desktop h2{
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 1.4rem;
+  color: #ff4444; /* rojo retro para destacar */
+  margin-bottom: .8rem;
+  display: flex;
+  justify-content: center; /* centra horizontalmente */
+  align-items: center;
+  gap: .4rem;
+}
+
 .cart-list{
   display: grid;
   gap: .6rem;
@@ -240,11 +264,33 @@ function agregarAlCarrito(item){
 .cart-info{ flex: 1; }
 .cart-title{
   display:flex; justify-content:space-between; gap:.5rem; align-items: baseline;
+  font-weight: 600;
 }
-.cart-price{ color: #FFC531; font-weight: 800; }
-.cart-sub{ opacity:.85; font-size:.92rem; margin:.25rem 0 0 0; padding-left: 1rem; }
-.cart-footer{ margin-top: .6rem; }
-.cart-total{ margin-bottom: .6rem; }
+.cart-title strong{
+  color: #fff; /* nombres en blanco */
+  font-size: 1rem;
+}
+.cart-price{ 
+  color: #ffcc00; /* dorado para precios */
+  font-weight: 700;
+  font-size: 1rem;
+}
+
+.cart-sub{ 
+  font-size:.9rem; 
+  color: #ccc; /* subdetalles en gris claro */
+  margin:.3rem 0 0 0; 
+  padding-left: 1rem; 
+}
+.cart-sub li{ margin-bottom: .2rem; }
+
+.cart-footer{ margin-top: .8rem; }
+.cart-total{ 
+  font-size: 1.1rem; 
+  font-weight: 700; 
+  color: #ffcc00; /* total en dorado */
+  margin-bottom: .8rem; 
+}
 
 /* Ocultar carrito de página en móvil por si acaso (refuerzo) */
 @media (max-width: 1023px){

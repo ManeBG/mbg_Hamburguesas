@@ -124,21 +124,20 @@ function showToast(text){
 </script>
 
 <template>
-  <article class="card">
-    <div class="card-media">
-      <img
-        :src="platillo.img || `https://via.placeholder.com/600x450?text=${encodeURIComponent(platillo.nombre)}`"
-        :alt="platillo.nombre"
-        loading="lazy"
-        decoding="async"
-      />
-    </div>
+  <div class="card h-100 shadow-sm border-0 retro-dark">
+    <!-- Imagen -->
+    <img
+      :src="platillo.img || `https://via.placeholder.com/600x450?text=${encodeURIComponent(platillo.nombre)}`"
+      :alt="platillo.nombre"
+      class="card-img-top img-fluid"
+    />
 
-    <div class="card-body">
-      <h3 class="card-title">{{ platillo.nombre }}</h3>
+    <!-- Cuerpo -->
+    <div class="card-body d-flex flex-column">
+      <h5 class="card-title">{{ platillo.nombre }}</h5>
 
       <!-- Ingredientes removibles -->
-      <details v-if="(platillo.ingredientes_base || []).length" class="opt">
+      <details v-if="(platillo.ingredientes_base || []).length" class="opt mb-2">
         <summary>🚫 Quitar ingredientes</summary>
         <ul class="opt-grid">
           <li v-for="(ing, idx) in platillo.ingredientes_base" :key="idx">
@@ -150,63 +149,108 @@ function showToast(text){
                 :disabled="ing.removible === false"
                 :checked="ing.removible !== false"
               />
-              <span>
-                {{ ing.nombre }}
-                <small v-if="ing.removible === false" class="fixed">fijo</small>
-              </span>
+              {{ ing.nombre }}
+              <small v-if="ing.removible === false" class="fixed">(fijo)</small>
             </label>
           </li>
         </ul>
       </details>
 
       <!-- Toppings -->
-      <details v-if="(platillo.toppings_opcionales || []).length" class="opt">
+      <details v-if="(platillo.toppings_opcionales || []).length" class="opt mb-2">
         <summary>➕ Toppings extra</summary>
-        <ul class="opt-grid">
-          <li v-for="(t, idx) in platillo.toppings_opcionales" :key="idx">
-            <label class="opt-row">
-              <input type="checkbox" :value="t.nombre" v-model="toppingsSeleccionados" />
-              <span>{{ t.nombre }}</span>
-              <em v-if="t.precio">+ ${{ (Number(t.precio)||0).toFixed(2) }}</em>
-            </label>
+        <ul class="list-unstyled mt-2">
+          <li
+            v-for="(t, idx) in platillo.toppings_opcionales"
+            :key="idx"
+            class="mb-2"
+          >
+            <div class="d-flex justify-content-between align-items-center">
+              <!-- Checkbox + nombre -->
+              <label class="d-flex align-items-center gap-2 m-0">
+                <input
+                  type="checkbox"
+                  class="form-check-input"
+                  :value="t.nombre"
+                  v-model="toppingsSeleccionados"
+                />
+                {{ t.nombre }}
+              </label>
+
+              <!-- Precio -->
+              <span v-if="t.precio" class="topping-price">
+                + ${{ (Number(t.precio)||0).toFixed(2) }}
+              </span>
+            </div>
           </li>
         </ul>
       </details>
 
+
+
       <!-- Precio + botón -->
-      <div class="card-meta">
+      <div class="mt-auto d-flex justify-content-between align-items-center">
         <span class="price">${{ subtotal.toFixed(2) }}</span>
-        <button class="btn btn-primary add-btn" :class="{ adding }" @click="onAdd($event)">
+        <button
+          class="btn btn-danger add-btn"
+          :disabled="adding"
+          @click="onAdd($event)"
+        >
           <span v-if="!adding">➕ Agregar</span>
           <span v-else>✅ Agregado</span>
         </button>
       </div>
     </div>
-  </article>
+  </div>
 </template>
 
-<style>
-/* botón */
-.add-btn{ transition: transform .06s ease, filter .2s ease; }
-.add-btn:active{ transform: translateY(1px) scale(.98); }
-.add-btn.adding{ filter: brightness(1.1); }
+<style scoped>
+/* 🎨 Estilo Retro Gourmet Oscuro */
+.retro-dark {
+  background: #1a1a1a;   /* Fondo oscuro */
+  color: #f5f5f5;        /* Texto claro */
+  border-radius: 14px;
+}
+.retro-dark .card-title {
+  color: #ff4444;         /* Rojo apetitoso */
+  font-family: 'Bebas Neue', sans-serif;
+}
+.retro-dark .price {
+  color: #ffcc00;         /* Dorado/cheddar */
+  font-size: 1.3rem;
+  font-weight: bold;
+}
 
-/* opciones bonitas (checkbox a la par) */
-.opt{ background:#171717; border:1px solid #262626; border-radius:12px; padding:.6rem .8rem; }
-.opt + .opt{ margin-top:.5rem; }
-.opt summary{ cursor:pointer; font-weight:600; margin-bottom:.4rem; }
-.opt-grid{ display:grid; grid-template-columns: 1fr; gap:.35rem; margin-top:.5rem; }
-@media (min-width: 768px){ .opt-grid{ grid-template-columns: 1fr 1fr; } }
-.opt-row{ display:flex; align-items:center; gap:.5rem; }
-.opt-row em{ margin-left:auto; font-style:normal; opacity:.9; }
-.fixed{ opacity:.6; margin-left:.25rem; }
+/* Animación botón */
+.add-btn { transition: transform .06s ease, filter .2s ease; }
+.add-btn:active { transform: translateY(1px) scale(.98); }
+.add-btn.adding { filter: brightness(1.1); }
 
-/* card base */
-.card { background:#1a1a1a; border-radius:18px; overflow:hidden; display:grid; grid-template-rows:auto 1fr; box-shadow:0 1px 0 #222; }
-.card-media img{ width:100%; aspect-ratio:4/3; object-fit:cover; transition: scale .5s ease; display:block; }
-.card:hover .card-media img{ scale:1.05; }
-.card-body{ padding:1rem; display:grid; gap:.6rem; }
-.card-title{ font-weight:700; }
-.card-meta{ display:flex; align-items:center; justify-content:space-between; gap:.8rem; }
-.price{ color:#FFC531; font-weight:800; }
+/* Opciones (checkbox estilizados) */
+.opt { background:#171717; border:1px solid #262626; border-radius:12px; padding:.6rem .8rem; }
+.opt + .opt { margin-top:.5rem; }
+.opt summary { cursor:pointer; font-weight:600; margin-bottom:.4rem; }
+.opt-grid { display:grid; grid-template-columns: 1fr; gap:.35rem; margin-top:.5rem; }
+@media (min-width: 768px) { .opt-grid { grid-template-columns: 1fr 1fr; gap: .75rem 1rem;} }
+.opt-row { display:flex; align-items:center; justify-content: space-between; gap:.5rem; background: transparent;}
+.opt-row input { margin-right: .5rem; }
+.opt-row em { margin-left: auto; font-style: normal; opacity: .9; white-space: nowrap; }
+.fixed { opacity:.6; margin-left:.25rem; }
+
+/* Imagen efecto hover */
+.card-img-top {
+  aspect-ratio: 4/3;
+  object-fit: cover;
+  transition: transform .5s ease;
+}
+.card:hover .card-img-top { transform: scale(1.05); }
+
+.topping-price {
+  color: #ffcc00;      /* amarillo cheddar */
+  font-weight: 600;
+  font-size: 0.95rem;
+  white-space: nowrap; /* evita que se corte */
+}
+
+
 </style>

@@ -50,7 +50,6 @@ function vaciar(){ carrito.value = [] }
             — ${{ item.total?.toFixed?.(2) || Number(item.total || 0).toFixed(2) }}
             <ul style="opacity:.8; font-size:.9rem;">
               <li v-if="item.toppings?.length">Toppings:{{ item.toppings.map(t => `${t.nombre} (+$${(Number(t.precio)||0).toFixed(2)})`).join(', ') }}</li>
-
               <li v-if="item.sin_ingredientes?.length">Sin: {{ item.sin_ingredientes.join(', ') }}</li>
             </ul>
           </div>
