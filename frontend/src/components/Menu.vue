@@ -1,92 +1,9 @@
 <!-- src/components/Menu.vue -->
-<template>
-  <div>
-    <div v-if="nombreUsuario">
-      👋 Hola, {{ nombreUsuario }} | <a href="#" @click="logout">Cerrar sesión</a>
-    </div>
-    <div v-else>
-      <p>👤 No has iniciado sesión</p>
-      <router-link to="/login">🔑 Iniciar sesión</router-link> | 
-      <router-link to="/registro">📝 Registrarse</router-link>
-    </div>
-
-    <div v-if="estadoNegocio === 'cerrado'" class="cerrado-banner">
-      🚫 En este momento estamos cerrados. No se pueden hacer pedidos.
-    </div>
-
-    <div class="horarios">
-      <h3>📅 Horarios de atención</h3>
-      <ul>
-        <li v-for="h in horarios" :key="h.dia">
-          <strong>{{ h.dia }}:</strong>
-          <span v-if="h.activo">{{ h.apertura }} - {{ h.cierre }}</span>
-          <span v-else class="cerrado">Cerrado</span>
-        </li>
-      </ul>
-    </div>
-
-    <div class="container">
-      <h1>Menú Interactivo</h1>
-
-      <div v-if="menu.length === 0">Cargando menú...</div>
-
-      <div v-else class="grid">
-        <PlatilloCard
-          v-for="platillo in menu"
-          :key="platillo.id"
-          :platillo="platillo"
-        />
-
-        <h2>Extras disponibles</h2>
-        <ul>
-          <li v-for="extra in extras" :key="extra.nombre">
-            {{ extra.nombre }} - ${{ extra.precio }}
-          </li>
-        </ul>
-      </div>
-
-      <h2>🛒 Carrito</h2>
-
-      <div v-if="estadoNegocio === 'cerrado'">
-        <p>Estamos cerrados. El carrito está deshabilitado.</p>
-      </div>
-
-      <div v-else>
-        <div v-if="carrito.length === 0">
-          El carrito está vacío.
-        </div>
-        <div v-else>
-          <ul>
-            <li v-for="(item, index) in carrito" :key="index" class="carrito-item">
-              <div>
-                <strong>{{ item.nombre }}</strong> — ${{ item.total.toFixed?.(2) || Number(item.total).toFixed(2) }}
-                <ul>
-                  <li v-if="item.toppings?.length">Toppings: {{ item.toppings.join(', ') }}</li>
-                  <li v-if="item.sin_ingredientes?.length">Sin: {{ item.sin_ingredientes.join(', ') }}</li>
-                </ul>
-              </div>
-              <button @click="quitarDelCarrito(index)">Quitar</button>
-            </li>
-          </ul>
-
-          <p><strong>Total general:</strong> ${{ totalGeneral }}</p>
-
-          <!-- 👉 Ya no capturamos datos aquí. Solo llevamos a Checkout. -->
-          <router-link to="/checkout">
-            <button>Ir a Checkout</button>
-          </router-link>
-          <button class="ml-2" @click="vaciarCarrito">Vaciar carrito</button>
-        </div>
-      </div>
-    </div>
-  </div>
-</template>
-
 <script setup>
 import { ref, onMounted, computed } from 'vue'
 import PlatilloCard from './PlatilloCard.vue'
 import { carrito, quitarDelCarrito, vaciarCarrito } from '@/store'
-
+import { useMedia } from '@/composables/useMedia'
 
 const menu = ref([])
 const extras = ref([])
@@ -95,8 +12,11 @@ const estadoNegocio = ref("abierto")
 const nombreUsuario = ref(localStorage.getItem("nombre") || null)
 
 const totalGeneral = computed(() =>
-  carrito.value.reduce((acc, item) => acc + Number(item.total || 0), 0).toFixed(2)
+  (carrito.value || []).reduce((acc, item) => acc + Number(item?.total || 0), 0).toFixed(2)
 )
+
+// Mostrar carrito de página SOLO en desktop (>=1024px)
+const isDesktop = useMedia('(min-width: 1024px)')
 
 const logout = () => {
   localStorage.removeItem("user_id")
@@ -118,44 +38,219 @@ onMounted(async () => {
   try {
     const horarioRes = await fetch("http://localhost:5000/api/horarios")
     const horariosData = await horarioRes.json()
-    horarios.value = horariosData
+    horarios.value = Array.isArray(horariosData) ? horariosData : []
   } catch (err) {
     console.error("Error al obtener horarios:", err)
   }
 
-  const res = await fetch('/menu.json')
-  const data = await res.json()
-  menu.value = data.menu
-  extras.value = data.extras_disponibles
+  try {
+    const res = await fetch('/menu.json')
+    const data = await res.json()
+    menu.value = data.menu || []
+    extras.value = data.extras_disponibles || []
+  } catch (e) {
+    console.error('Error cargando menú:', e)
+    menu.value = []
+    extras.value = []
+  }
 })
+
+function agregarAlCarrito(item){
+  // item ya viene con total calculado y arrays toppings/sin
+  carrito.value.push(item)
+}
+
 </script>
 
+<template>
+  <div class="container">
+    <!-- Sesión -->
+    <div v-if="nombreUsuario" class="session-row">
+      👋 Hola, {{ nombreUsuario }} |
+      <a href="#" @click.prevent="logout">Cerrar sesión</a>
+    </div>
+    <div v-else class="session-row">
+      <span>👤 No has iniciado sesión</span>
+      <div class="actions-center">
+        <router-link class="btn btn-ghost" to="/login">🔑 Iniciar sesión</router-link>
+        <router-link class="btn btn-ghost" to="/registro">📝 Registrarse</router-link>
+      </div>
+    </div>
+
+    <!-- Banner cerrado -->
+    <div v-if="estadoNegocio === 'cerrado'" class="cerrado-banner">
+      🚫 En este momento estamos cerrados. No se pueden hacer pedidos.
+    </div>
+
+    <!-- Horarios -->
+    <section class="horarios">
+      <h3>📅 Horarios de atención</h3>
+      <ul>
+        <li v-for="h in horarios" :key="h.dia">
+          <strong>{{ h.dia }}:</strong>
+          <span v-if="h.activo">{{ h.apertura }} - {{ h.cierre }}</span>
+          <span v-else class="cerrado">Cerrado</span>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Menú -->
+    <h1>Menú Interactivo</h1>
+    <div v-if="(menu || []).length === 0">Cargando menú...</div>
+
+    <div v-else class="menu-grid">
+      <PlatilloCard
+        v-for="platillo in menu"
+        :key="platillo.id"
+        :platillo="platillo"
+        @add="agregarAlCarrito"
+      />
+    </div>
+
+    <!-- Extras -->
+    <h2 class="mt-1">Extras disponibles</h2>
+    <ul class="extras-list">
+      <li v-for="extra in extras" :key="extra.nombre">
+        {{ extra.nombre }} - ${{ extra.precio }}
+      </li>
+    </ul>
+
+    <!-- 🛒 Carrito: SOLO se ve en desktop -->
+    <section v-if="isDesktop" class="cart-desktop">
+      <h2>🛒 Carrito</h2>
+
+      <div v-if="estadoNegocio === 'cerrado'">
+        <p>Estamos cerrados. El carrito está deshabilitado.</p>
+      </div>
+
+      <div v-else>
+        <div v-if="(carrito || []).length === 0">El carrito está vacío.</div>
+
+        <div v-else>
+          <!-- dentro del carrito en Menu.vue -->
+          <ul class="cart-list">
+            <li v-for="(item, index) in carrito" :key="index" class="cart-row">
+              <div class="cart-info">
+                <div class="cart-title">
+                  <strong>{{ item.nombre }}</strong>
+                  <span class="cart-price">
+                    ${{ (Number(item.total)||0).toFixed(2) }}
+                  </span>
+                </div>
+
+                <ul class="cart-sub">
+                  <li>Unidad: ${{ (Number(item.subtotal)||0).toFixed(2) }} × {{ item.cantidad || 1 }}</li>
+                  <li v-if="(item.toppings||[]).length">
+                    Toppings:
+                    {{ item.toppings.map(t => `${t.nombre} (+$${(Number(t.precio)||0).toFixed(2)})`).join(', ') }}
+                  </li>
+                  <li v-if="(item.sin_ingredientes||[]).length">
+                    Sin: {{ item.sin_ingredientes.join(', ') }}
+                  </li>
+                </ul>
+              </div>
+
+              <button class="btn btn-ghost" @click="quitarDelCarrito(index)">Quitar</button>
+            </li>
+          </ul>
+
+
+          <div class="cart-footer">
+            <p class="cart-total"><strong>Total:</strong> ${{ totalGeneral }}</p>
+
+            <!-- Botones centrados y separados -->
+            <div class="actions-center">
+              <router-link class="btn btn-primary btn-lg" to="/checkout">Ir a Checkout</router-link>
+              <button class="btn btn-ghost btn-lg" @click="vaciarCarrito">Vaciar carrito</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </div>
+</template>
+
 <style>
+/* Layout base */
 .container {
-  max-width: 800px;
+  width: min(100% - 24px, 1100px);
   margin: auto;
   padding: 1rem;
 }
+
+/* Mensajes */
 .cerrado-banner {
   background: #f44336;
   color: white;
   padding: 1rem;
   text-align: center;
+  border-radius: 12px;
+  margin: .5rem 0 1rem 0;
 }
-.grid {
+
+/* Grid de cards del menú */
+.menu-grid{
   display: grid;
-  gap: .75rem;
+  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
 }
-.carrito-item {
+
+/* Extras */
+.mt-1{ margin-top: 1rem; }
+.extras-list{ margin-left: 1.2rem; }
+
+/* Sesión */
+.session-row{
+  display:flex; align-items:center; gap:.6rem; flex-wrap:wrap; margin-bottom:.5rem;
+}
+
+/* Utilidades de botones centrados/separados */
+.actions-center{
+  display:flex; justify-content:center; gap:.75rem; flex-wrap:wrap; margin-top:.75rem;
+}
+.btn{
+  display:inline-flex; align-items:center; justify-content:center;
+  padding:.6rem .9rem; border-radius:12px; border:1px solid #333; background:#141414; color:#f7f7f7;
+  cursor:pointer; min-height:44px;
+}
+.btn-ghost{ background:transparent; }
+.btn-primary{ background:#E6382B; color:#fff; border-color:transparent; }
+.btn-lg{ padding: .9rem 1.1rem; }
+
+/* Carrito Desktop */
+.cart-desktop{
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid #222;
+  border-radius: 14px;
+  background: #1a1a1a;
+}
+.cart-list{
+  display: grid;
+  gap: .6rem;
+}
+.cart-row{
   display: flex;
   justify-content: space-between;
-  align-items: start;
-  border-bottom: 1px solid #eee;
-  padding: .5rem 0;
+  gap: .8rem;
+  padding-bottom: .6rem;
+  border-bottom: 1px solid #222;
 }
-.ml-2 { margin-left: .5rem; }
-</style>
+.cart-info{ flex: 1; }
+.cart-title{
+  display:flex; justify-content:space-between; gap:.5rem; align-items: baseline;
+}
+.cart-price{ color: #FFC531; font-weight: 800; }
+.cart-sub{ opacity:.85; font-size:.92rem; margin:.25rem 0 0 0; padding-left: 1rem; }
+.cart-footer{ margin-top: .6rem; }
+.cart-total{ margin-bottom: .6rem; }
 
+/* Ocultar carrito de página en móvil por si acaso (refuerzo) */
+@media (max-width: 1023px){
+  .cart-desktop{ display:none; }
+}
+</style>
 
 
 

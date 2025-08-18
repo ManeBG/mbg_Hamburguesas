@@ -1,0 +1,158 @@
+:root{
+  /* Paleta */
+  --bg: #111111;          /* fondo base */
+  --surface: #1A1A1A;     /* tarjetas/nav */
+  --text: #F7F7F7;        /* texto principal */
+  --muted: #CFCFCF;       /* texto secundario */
+  --primary: #E6382B;     /* CTA rojo tomate */
+  --accent: #FFC531;      /* amarillo cheddar */
+  --ok: #2BAE66;          /* verde lechuga */
+  --warn: #F2B705;        /* mostaza */
+
+  /* Dimensiones */
+  --radius: 18px;
+  --gap-1: .5rem;
+  --gap-2: 1rem;
+  --gap-3: 1.5rem;
+
+  /* Tipografía fluida */
+  --fs-base: clamp(14px, 1.4vw, 16px);
+  --fs-h1: clamp(1.6rem, 4.5vw, 2.4rem);
+  --fs-h2: clamp(1.3rem, 3.6vw, 1.8rem);
+  --fs-h3: clamp(1.1rem, 3vw, 1.2rem);
+
+  /* Sombra cálida */
+  --shadow: 0 10px 30px rgba(230, 56, 43, .15);
+}
+
+html, body{
+  background: var(--bg);
+  color: var(--text);
+  font-size: var(--fs-base);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+.container{ width: min(100% - 24px, 1100px); margin: 0 auto; }
+
+h1{ font-size: var(--fs-h1); }
+h2{ font-size: var(--fs-h2); }
+h3{ font-size: var(--fs-h3); color: var(--text); }
+
+.btn{
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: .5rem; padding: .75rem 1rem; border-radius: 12px;
+  border: 1px solid transparent; cursor: pointer; min-height: 44px;
+  transition: transform .06s ease, box-shadow .2s ease, background .2s;
+}
+.btn:active{ transform: translateY(1px); }
+.btn-primary{ background: var(--primary); color:#fff; box-shadow: var(--shadow); }
+.btn-primary:hover{ filter: brightness(1.05); }
+.btn-ghost{ background: transparent; color: var(--text); border-color:#333; }
+.badge{
+  font-size: .75rem; padding: .25rem .5rem; border-radius: 999px;
+  background: color-mix(in oklab, var(--ok), #000 15%); color:#062;
+}
+
+.input, .select, .textarea{
+  width: 100%; padding: .8rem; border-radius: 12px;
+  background: #141414; border: 1px solid #2A2A2A; color: var(--text);
+}
+label{ font-size: .9rem; color: var(--muted); display:block; margin-bottom: .35rem; }
+
+/* Grid responsive para el menú */
+.menu-grid{
+  display: grid; gap: var(--gap-2);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+
+/* Tarjeta de producto */
+.card{
+  background: var(--surface); border-radius: var(--radius); overflow: hidden;
+  box-shadow: 0 1px 0 #222, var(--shadow);
+  display: grid; grid-template-rows: auto 1fr auto;
+}
+.card-media{
+  position: relative; overflow: hidden;
+}
+.card-media img{
+  width: 100%; aspect-ratio: 4/3; object-fit: cover;
+  transition: scale .5s ease;
+}
+.card:hover .card-media img{ scale: 1.05; }
+.card-body{ padding: var(--gap-2); display: grid; gap: .5rem; }
+.card-title{ font-weight: 700; line-height: 1.2; }
+.card-desc{ color: var(--muted); font-size: .9rem; min-height: 2.3em; }
+.card-meta{ display:flex; align-items:center; justify-content: space-between; gap: .8rem; }
+.price{
+  font-weight: 800; letter-spacing: .3px;
+  color: var(--accent); font-size: 1.05rem;
+}
+
+/* Barra inferior móvil (acciones clave) */
+.mobile-bar{
+  position: sticky; bottom: 0; z-index: 50;
+  display: grid; grid-template-columns: repeat(3,1fr); gap: 8px;
+  background: rgba(10,10,10,.9); backdrop-filter: blur(6px);
+  padding: .5rem; border-top: 1px solid #222;
+}
+@media (min-width: 768px){ .mobile-bar{ display:none; } }
+
+/* Drawer carrito */
+.backdrop{ position: fixed; inset:0; background: rgba(0,0,0,.4);
+  opacity:0; pointer-events:none; transition: opacity .2s; }
+.backdrop.is-open{ opacity:1; pointer-events:auto; }
+.drawer{
+  position: fixed; inset:0 0 0 auto; width:min(100%, 420px);
+  background: var(--surface); translate: 100% 0; transition: translate .25s;
+  padding: var(--gap-2); z-index: 60; overflow:auto;
+}
+.drawer.is-open{ translate: 0 0; }
+@media (max-width: 767px){ .drawer{ width:100%; border-radius:0; } }
+
+/* Form responsive */
+.form-grid{ display:grid; gap: var(--gap-2); grid-template-columns: 1fr; }
+@media (min-width: 768px){ .form-grid{ grid-template-columns: 1fr 1fr; } }
+.form-full{ grid-column: 1 / -1; }
+
+
+/* theme.css – mejoras del drawer */
+.drawer-actions{ display: grid; gap: .6rem; }
+.btn-block{ width: 100%; }
+.drawer-actions-row{ display: flex; gap: .5rem; justify-content: flex-end; flex-wrap: wrap; }
+
+
+/* Centrado y separación bonita para acciones */
+.actions-center{
+  display:flex;
+  justify-content:center;
+  gap:.75rem;         /* separa botones */
+  flex-wrap:wrap;     /* si falta espacio, saltan de línea */
+  margin-top:.75rem;
+}
+.btn-lg{ padding: .9rem 1.1rem; }
+
+/* Mostrar/ocultar por dispositivo */
+.desktop-only{ display:none; }
+.mobile-only{ display:block; }
+@media (min-width: 768px){
+  .desktop-only{ display:block; }
+  .mobile-only{ display:none; }
+}
+
+/* Anim del botón del carrito (global) */
+@keyframes cart-bump {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+#btn-cart.bump { animation: cart-bump .28s ease; }
+
+/* Toast global (por si lo activas) */
+#toast{
+  position: fixed; left: 50%; transform: translateX(-50%);
+  bottom: 80px; background: rgba(0,0,0,.85); color:#fff;
+  padding:.6rem .9rem; border-radius:12px; opacity:0; pointer-events:none;
+  transition: opacity .25s ease, transform .25s ease;
+  z-index: 10000;
+}
+#toast.show{ opacity:1; transform: translateX(-50%) translateY(-6px); }
