@@ -3,7 +3,7 @@
 import { ref, onMounted, computed } from 'vue'
 import PlatilloCard from './PlatilloCard.vue'
 import { carrito, quitarDelCarrito, vaciarCarrito } from '@/store'
-import { useMedia } from '@/composables/useMedia'
+// import { useMedia } from '@/composables/useMedia'
 
 const menu = ref([])
 const extras = ref([])
@@ -16,7 +16,7 @@ const totalGeneral = computed(() =>
 )
 
 // Mostrar carrito de página SOLO en desktop (>=1024px)
-const isDesktop = useMedia('(min-width: 1024px)')
+// const isDesktop = useMedia('(min-width: 1024px)')
 
 const logout = () => {
   localStorage.removeItem("user_id")
@@ -126,7 +126,7 @@ function agregarAlCarrito(item){
     </ul>
 
     <!-- 🛒 Carrito: SOLO se ve en desktop -->
-    <section v-if="isDesktop" class="cart-desktop">
+    <!-- <section v-if="isDesktop" class="cart-desktop">
       <h2>🛒 Carrito</h2>
 
       <div v-if="estadoNegocio === 'cerrado'">
@@ -136,9 +136,9 @@ function agregarAlCarrito(item){
       <div v-else>
         <div v-if="(carrito || []).length === 0">El carrito está vacío.</div>
 
-        <div v-else>
+        <div v-else> -->
           <!-- dentro del carrito en Menu.vue -->
-          <ul class="cart-list">
+          <!-- <ul class="cart-list">
             <li v-for="(item, index) in carrito" :key="index" class="cart-row">
               <div class="cart-info">
                 <div class="cart-title">
@@ -166,17 +166,17 @@ function agregarAlCarrito(item){
 
 
           <div class="cart-footer">
-            <p class="cart-total"><strong>Total:</strong> ${{ totalGeneral }}</p>
+            <p class="cart-total"><strong>Total:</strong> ${{ totalGeneral }}</p> -->
 
             <!-- Botones centrados y separados -->
-            <div class="actions-center">
+            <!-- <div class="actions-center">
               <router-link class="btn btn-primary btn-lg" to="/checkout">Ir a Checkout</router-link>
               <button class="btn btn-outline-danger btn-lg" @click="vaciarCarrito">Vaciar carrito</button>
             </div>
           </div>
         </div>
       </div>
-    </section>
+    </section> -->
 
   </div>
 </template>

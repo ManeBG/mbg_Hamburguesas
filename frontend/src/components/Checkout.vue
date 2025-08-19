@@ -3,9 +3,8 @@ import { ref, computed, onMounted } from "vue";
 import { crearPedido } from "@/api/pedidos";
 import { listarDirecciones, crearDireccion } from "@/api/direcciones";
 import { abrirWhatsResumen, telefonoParaWhats } from "@/utils/whats";
-import { carrito } from "@/store";
+import { carrito, vaciarCarrito } from "@/store";
 import { useRouter } from 'vue-router'
-import { vaciarCarrito } from '@/store' // ya tienes carrito; añade vaciarCarrito
 import Swal from 'sweetalert2'
 import 'sweetalert2/dist/sweetalert2.min.css'
 
@@ -19,15 +18,12 @@ const dataPedido = ref(null);
 const abrirWhatsAuto = ref(true);
 const NEGOCIO_TEL = import.meta.env.VITE_NEGOCIO_TEL;
 
-// ---- Direcciones ----
-const direcciones = ref([]);          // lista del backend
-const seleccion = ref("");            // "id:10" | "nueva" | "" | "texto"
+const direcciones = ref([]);
+const seleccion = ref("");
 const nueva = ref({ calle:"", colonia:"", ciudad:"", referencias:"", guardar:true });
-const direccionTexto = ref("");       // textarea cuando no hay sesión o elige "texto"
+const direccionTexto = ref("");
 
-// carga direcciones si hay user
 onMounted(async () => {
-  // autocompleta nombre/tel si traes guardado
   const nombreLS = localStorage.getItem("nombre"); 
   const telLS = localStorage.getItem("telefono");
   if (nombreLS) form.value.nombre = nombreLS;
@@ -36,7 +32,6 @@ onMounted(async () => {
   if (userId.value) {
     direcciones.value = await listarDirecciones(userId.value);
   } else {
-    // no logueado: forzamos modo texto
     seleccion.value = "texto";
   }
 });
@@ -48,7 +43,6 @@ function formateaDir(d) {
 }
 
 async function armaPayload() {
-  // items al formato que espera el backend
   const items = carritoItems.value.map(i => ({
     nombre_producto: i.nombre,
     cantidad: 1,
@@ -57,13 +51,8 @@ async function armaPayload() {
     subtotal: i.total
   }));
 
-  // valida nombre y teléfono
-  if (!form.value.nombre || !form.value.telefono) {
-    throw new Error("Faltan nombre y/o teléfono");
-  }
-  if (!items.length) {
-    throw new Error("El carrito está vacío");
-  }
+  if (!form.value.nombre || !form.value.telefono) throw new Error("Faltan nombre y/o teléfono");
+  if (!items.length) throw new Error("El carrito está vacío");
 
   const base = {
     user_id: userId.value ? Number(userId.value) : null,
@@ -73,29 +62,22 @@ async function armaPayload() {
     pedido: items
   };
 
-  // Caso A: no logueado → solo texto
   if (!userId.value || seleccion.value === "texto") {
-    if (!direccionTexto.value.trim()) {
-      throw new Error("Falta la dirección de entrega");
-    }
+    if (!direccionTexto.value.trim()) throw new Error("Falta la dirección de entrega");
     return { ...base, direccion_entrega: direccionTexto.value.trim() };
   }
 
-  // Caso B: logueado + elige una guardada
   if (seleccion.value?.startsWith("id:")) {
     const id = Number(seleccion.value.split(":")[1]);
     if (!id) throw new Error("Dirección seleccionada inválida");
-    // importante: si mandas id, NO mandes texto
     return { ...base, direccion_id: id };
   }
 
-  // Caso C: logueado + nueva dirección
   if (seleccion.value === "nueva") {
     const partes = [nueva.value.calle, nueva.value.colonia, nueva.value.ciudad].filter(Boolean);
     if (!partes.length) throw new Error("Completa al menos calle, colonia y ciudad");
     const snap = nueva.value.referencias ? `${partes.join(", ")}, Ref: ${nueva.value.referencias}` : partes.join(", ");
 
-    // ¿guardar?
     if (nueva.value.guardar) {
       const creado = await crearDireccion({
         user_id: Number(userId.value),
@@ -107,25 +89,22 @@ async function armaPayload() {
       if (creado && (creado.id || creado.direccion_id)) {
         return { ...base, direccion_id: creado.id || creado.direccion_id };
       }
-      // si no se pudo guardar, al menos manda snapshot de texto
     }
     return { ...base, direccion_entrega: snap };
   }
 
-  // fallback si no eligió nada
   throw new Error("Selecciona una dirección o escribe la dirección de entrega");
 }
 
-const enviando = ref(false);          // evita doble click durante el POST
-const pedidoConfirmado = ref(false);  // deshabilita Confirmar cuando ya se creó
-const yaAbriWhats = ref(false);       // cambia a "Reenviar al negocio"
+const enviando = ref(false);
+const pedidoConfirmado = ref(false);
+const yaAbriWhats = ref(false);
 
 async function confirmarPedido() {
   if (enviando.value || pedidoConfirmado.value) return;
-
   try {
     enviando.value = true;
-    const payload = await armaPayload();   // aquí lanzas los errores
+    const payload = await armaPayload();
     const resp = await crearPedido(payload);
 
     if (!resp.ok) {
@@ -143,8 +122,6 @@ async function confirmarPedido() {
     if (abrirWhatsAuto.value) enviarAlNegocio();
   } catch (e) {
     const msg = String(e?.message || e);
-
-    // 👇 Detecta los mensajes de dirección y usa un alert específico
     if (msg.includes('Selecciona una dirección') || msg.includes('Falta la dirección de entrega')) {
       await Swal.fire({
         icon: 'warning',
@@ -164,10 +141,6 @@ async function confirmarPedido() {
   }
 }
 
-
-
-
-
 function enviarAlNegocio() {
   if (!dataPedido.value) return;
   abrirWhatsResumen({
@@ -185,11 +158,8 @@ function enviarAlNegocio() {
     total: dataPedido.value.total,
     direccionEntrega: dataPedido.value.direccion_entrega
   });
-  yaAbriWhats.value = true; // ahora el botón dirá "Reenviar..."
+  yaAbriWhats.value = true;
 }
-
-
-
 
 function compartirConCliente() {
   if (!dataPedido.value) return;
@@ -237,80 +207,90 @@ async function nuevoPedido({ limpiar = true, pedirConfirmacion = true, irMenu = 
     console.error(e)
   }
 }
-
-
-
-
 </script>
 
-
 <template>
-  <div style="padding:16px">
-    <h1>Checkout</h1>
-    <label>Nombre: <input v-model="form.nombre" /></label><br>
-    <label>Teléfono: <input v-model="form.telefono" /></label><br>
+  <div class="container py-4">
+    <div class="card checkout-card w-100" style="max-width: 600px; margin:auto;">
+      <div class="card-body">
+        <h2 class="card-title mb-4 text-center text-warning">Checkout</h2>
 
-    <!-- Direcciones -->
-    <div style="margin:12px 0;">
-      <template v-if="userId">
-        <label>Dirección de entrega:</label><br>
-        <select v-model="seleccion" style="min-width:280px">
-          <option disabled value="">Selecciona una dirección</option>
-          <option v-for="d in direcciones" :key="d.id" :value="`id:${d.id}`">
-            {{ formateaDir(d) }}
-          </option>
-          <option value="nueva">+ Nueva dirección...</option>
-          <option value="texto">Usar texto libre</option>
-        </select>
-        <p v-if="userId && direcciones.length === 0" style="margin-top:6px">
-            No tienes direcciones guardadas aún.
-        </p>
-        <!-- Nueva dirección -->
-        <div v-if="seleccion==='nueva'" style="margin-top:8px; display:grid; gap:6px; max-width:420px">
-          <input v-model="nueva.calle" placeholder="Calle y número">
-          <input v-model="nueva.colonia" placeholder="Colonia">
-          <input v-model="nueva.ciudad" placeholder="Ciudad">
-          <input v-model="nueva.referencias" placeholder="Referencias (opcional)">
-          <label><input type="checkbox" v-model="nueva.guardar"> Guardar esta dirección</label>
+        <!-- Datos del cliente -->
+        <div class="mb-3">
+          <label class="form-label">Nombre</label>
+          <input v-model="form.nombre" class="form-control" placeholder="Tu nombre" />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Teléfono</label>
+          <input v-model="form.telefono" class="form-control" placeholder="Ej: 7441234567" />
         </div>
 
-        <!-- Texto libre (logueado pero quiere capturar texto puntual) -->
-        <div v-if="seleccion==='texto'" style="margin-top:8px; max-width:420px">
-          <textarea v-model="direccionTexto" placeholder="Escribe la dirección de entrega"></textarea>
+        <!-- Direcciones -->
+        <div class="mb-3">
+          <label class="form-label">Dirección de entrega</label>
+          <template v-if="userId">
+            <select v-model="seleccion" class="form-select mb-2">
+              <option disabled value="">Selecciona una dirección</option>
+              <option v-for="d in direcciones" :key="d.id" :value="`id:${d.id}`">
+                {{ formateaDir(d) }}
+              </option>
+              <option value="nueva">+ Nueva dirección...</option>
+              <option value="texto">Usar texto libre</option>
+            </select>
+
+            <div v-if="seleccion==='nueva'" class="row g-2 mb-2">
+              <div class="col-md-6">
+                <input v-model="nueva.calle" class="form-control" placeholder="Calle y número" />
+              </div>
+              <div class="col-md-6">
+                <input v-model="nueva.colonia" class="form-control" placeholder="Colonia" />
+              </div>
+              <div class="col-md-6">
+                <input v-model="nueva.ciudad" class="form-control" placeholder="Ciudad" />
+              </div>
+              <div class="col-md-6">
+                <input v-model="nueva.referencias" class="form-control" placeholder="Referencias" />
+              </div>
+              <div class="form-check mt-2">
+                <input class="form-check-input" type="checkbox" v-model="nueva.guardar" />
+                <label class="form-check-label">Guardar esta dirección</label>
+              </div>
+            </div>
+
+            <textarea v-if="seleccion==='texto'" v-model="direccionTexto" class="form-control" rows="2" placeholder="Escribe la dirección completa"></textarea>
+          </template>
+
+          <template v-else>
+            <textarea v-model="direccionTexto" class="form-control" rows="2" placeholder="Escribe la dirección completa"></textarea>
+          </template>
         </div>
-      </template>
 
-      <template v-else>
-        <!-- No logueado: solo texto -->
-        <label>Dirección de entrega:</label><br>
-        <textarea v-model="direccionTexto" placeholder="Escribe la dirección de entrega" style="min-width:280px"></textarea>
-      </template>
-    </div>
+        <!-- Total -->
+        <div class="alert alert-info text-center fw-bold">
+          Total a pagar: ${{ Number(totalCarrito).toFixed(2) }}
+        </div>
 
-    <p>Total: ${{ Number(totalCarrito).toFixed(2) }}</p>
+        <!-- Botones principales -->
+        <div class="d-grid gap-2">
+          <button class="btn btn-success btn-lg" @click="confirmarPedido" :disabled="enviando || pedidoConfirmado">
+            {{ enviando ? 'Enviando...' : (pedidoConfirmado ? 'Pedido creado' : 'Confirmar pedido') }}
+          </button>
+          <div class="form-check text-center">
+            <input type="checkbox" class="form-check-input me-2" v-model="abrirWhatsAuto" />
+            <label class="form-check-label">Abrir WhatsApp al confirmar</label>
+          </div>
+        </div>
 
-    <!-- Confirmar: deshabilitado si ya se creó -->
-    <button @click="confirmarPedido" :disabled="enviando || pedidoConfirmado">
-        {{ enviando ? 'Enviando...' : (pedidoConfirmado ? 'Pedido creado' : 'Confirmar pedido') }}
-    </button>
-
-    <label class="ml-2">
-        <input type="checkbox" v-model="abrirWhatsAuto" />
-        Abrir Whats al crear pedido
-    </label>
-
-    <!-- Después de crear pedido: solo Whats -->
-    <div v-if="dataPedido" class="mt-3" style="display:flex; gap:8px">
-        <button @click="enviarAlNegocio">
+        <!-- Después de confirmar -->
+        <div v-if="dataPedido" class="d-flex justify-content-center gap-2 mt-3">
+          <button class="btn btn-primary" @click="enviarAlNegocio">
             {{ yaAbriWhats ? 'Reenviar al negocio' : 'Enviar al negocio' }}
-        </button>
-    <!-- ❌ Quita el botón de "Compartir con el cliente" si no lo usas -->
-        <!-- Nuevo pedido: limpia carrito y regresa al menú -->
-        <button type="button" @click="nuevoPedido({ limpiar:true, pedirConfirmacion:true, irMenu:true })">
+          </button>
+          <button class="btn btn-outline-secondary" type="button" @click="nuevoPedido({ limpiar:true, pedirConfirmacion:true, irMenu:true })">
             Nuevo pedido
-        </button>
-
+          </button>
+        </div>
+      </div>
     </div>
-
-</div>
+  </div>
 </template>
