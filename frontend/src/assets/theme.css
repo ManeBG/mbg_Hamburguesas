@@ -26,18 +26,27 @@
 }
 
 html, body{
-  background: var(--bg);
+  background: url('/images/burguerr.png') no-repeat center center fixed, var(--bg);
+  background-size: cover;
   color: var(--text);
   font-size: var(--fs-base);
   font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
 }
 
+/* Contenedor general */
 .container{ width: min(100% - 24px, 1100px); margin: 0 auto; }
 
+/* Titulares */
+h1, h2, h3 {
+  color: var(--text);
+  font-weight: 700;
+}
 h1{ font-size: var(--fs-h1); }
 h2{ font-size: var(--fs-h2); }
-h3{ font-size: var(--fs-h3); color: var(--text); }
+h3{ font-size: var(--fs-h3); }
+h1 strong, h2 strong { color: var(--accent); }
 
+/* Botones */
 .btn{
   display: inline-flex; align-items: center; justify-content: center;
   gap: .5rem; padding: .75rem 1rem; border-radius: 12px;
@@ -48,47 +57,68 @@ h3{ font-size: var(--fs-h3); color: var(--text); }
 .btn-primary{ background: var(--primary); color:#fff; box-shadow: var(--shadow); }
 .btn-primary:hover{ filter: brightness(1.05); }
 .btn-ghost{ background: transparent; color: var(--text); border-color:#333; }
+.btn-warning {
+  background-color: var(--accent);
+  border: none;
+  color: #212529;
+  font-weight: bold;
+}
+.btn-warning:hover {
+  background-color: #e0a800;
+  color: #212529;
+}
+.btn-lg{ padding: .9rem 1.1rem; }
+.btn-block{ width: 100%; }
+
+/* Badges */
 .badge{
   font-size: .75rem; padding: .25rem .5rem; border-radius: 999px;
   background: color-mix(in oklab, var(--ok), #000 15%); color:#062;
 }
 
-.input, .select, .textarea{
+/* Inputs */
+.input, .select, .textarea,
+.form-control, .form-select, textarea {
   width: 100%; padding: .8rem; border-radius: 12px;
   background: #141414; border: 1px solid #2A2A2A; color: var(--text);
 }
-label{ font-size: .9rem; color: var(--muted); display:block; margin-bottom: .35rem; }
-
-/* Grid responsive para el menú */
-.menu-grid{
-  display: grid; gap: var(--gap-2);
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+.form-control:focus, .form-select:focus, textarea:focus {
+  background-color: #1f1f1f;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 0.25rem rgba(255, 197, 49, 0.25);
 }
+::placeholder { color: #b5b5b5 !important; }
 
-/* Tarjeta de producto */
+/* Labels */
+label, .form-label{ font-size: .9rem; color: var(--muted); display:block; margin-bottom: .35rem; }
+
+/* Cards (productos/menu/checkout) */
 .card{
   background: var(--surface); border-radius: var(--radius); overflow: hidden;
   box-shadow: 0 1px 0 #222, var(--shadow);
   display: grid; grid-template-rows: auto 1fr auto;
 }
-.card-media{
-  position: relative; overflow: hidden;
+.card.checkout-card {
+  background-color: rgba(33, 37, 41, 0.9);
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
 }
-.card-media img{
-  width: 100%; aspect-ratio: 4/3; object-fit: cover;
-  transition: scale .5s ease;
-}
-.card:hover .card-media img{ scale: 1.05; }
-.card-body{ padding: var(--gap-2); display: grid; gap: .5rem; }
-.card-title{ font-weight: 700; line-height: 1.2; }
+.card-title{ color: var(--text); font-weight: 700; line-height: 1.2; }
 .card-desc{ color: var(--muted); font-size: .9rem; min-height: 2.3em; }
 .card-meta{ display:flex; align-items:center; justify-content: space-between; gap: .8rem; }
-.price{
-  font-weight: 800; letter-spacing: .3px;
-  color: var(--accent); font-size: 1.05rem;
-}
+.price{ font-weight: 800; letter-spacing: .3px; color: var(--accent); font-size: 1.05rem; }
 
-/* Barra inferior móvil (acciones clave) */
+/* Grid responsive menú */
+.menu-grid{
+  display: grid; gap: var(--gap-2);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+}
+.card-media{ position: relative; overflow: hidden; }
+.card-media img{ width: 100%; aspect-ratio: 4/3; object-fit: cover; transition: scale .5s ease; }
+.card:hover .card-media img{ scale: 1.05; }
+.card-body{ padding: var(--gap-2); display: grid; gap: .5rem; }
+
+/* Barra inferior móvil */
 .mobile-bar{
   position: sticky; bottom: 0; z-index: 50;
   display: grid; grid-template-columns: repeat(3,1fr); gap: 8px;
@@ -98,8 +128,7 @@ label{ font-size: .9rem; color: var(--muted); display:block; margin-bottom: .35r
 @media (min-width: 768px){ .mobile-bar{ display:none; } }
 
 /* Drawer carrito */
-.backdrop{ position: fixed; inset:0; background: rgba(0,0,0,.4);
-  opacity:0; pointer-events:none; transition: opacity .2s; }
+.backdrop{ position: fixed; inset:0; background: rgba(0,0,0,.4); opacity:0; pointer-events:none; transition: opacity .2s; }
 .backdrop.is-open{ opacity:1; pointer-events:auto; }
 .drawer{
   position: fixed; inset:0 0 0 auto; width:min(100%, 420px);
@@ -109,37 +138,19 @@ label{ font-size: .9rem; color: var(--muted); display:block; margin-bottom: .35r
 .drawer.is-open{ translate: 0 0; }
 @media (max-width: 767px){ .drawer{ width:100%; border-radius:0; } }
 
-/* Form responsive */
+/* Formularios responsive */
 .form-grid{ display:grid; gap: var(--gap-2); grid-template-columns: 1fr; }
 @media (min-width: 768px){ .form-grid{ grid-template-columns: 1fr 1fr; } }
 .form-full{ grid-column: 1 / -1; }
 
-
-/* theme.css – mejoras del drawer */
-.drawer-actions{ display: grid; gap: .6rem; }
-.btn-block{ width: 100%; }
-.drawer-actions-row{ display: flex; gap: .5rem; justify-content: flex-end; flex-wrap: wrap; }
-
-
-/* Centrado y separación bonita para acciones */
-.actions-center{
-  display:flex;
-  justify-content:center;
-  gap:.75rem;         /* separa botones */
-  flex-wrap:wrap;     /* si falta espacio, saltan de línea */
-  margin-top:.75rem;
-}
-.btn-lg{ padding: .9rem 1.1rem; }
-
-/* Mostrar/ocultar por dispositivo */
-.desktop-only{ display:none; }
-.mobile-only{ display:block; }
-@media (min-width: 768px){
-  .desktop-only{ display:block; }
-  .mobile-only{ display:none; }
+/* Alertas (total a pagar) */
+.checkout-card .alert {
+  background-color: var(--accent);
+  color: #212529;
+  font-weight: bold;
 }
 
-/* Anim del botón del carrito (global) */
+/* Anim del carrito */
 @keyframes cart-bump {
   0% { transform: scale(1); }
   30% { transform: scale(1.15); }
@@ -147,7 +158,7 @@ label{ font-size: .9rem; color: var(--muted); display:block; margin-bottom: .35r
 }
 #btn-cart.bump { animation: cart-bump .28s ease; }
 
-/* Toast global (por si lo activas) */
+/* Toast */
 #toast{
   position: fixed; left: 50%; transform: translateX(-50%);
   bottom: 80px; background: rgba(0,0,0,.85); color:#fff;
@@ -157,102 +168,18 @@ label{ font-size: .9rem; color: var(--muted); display:block; margin-bottom: .35r
 }
 #toast.show{ opacity:1; transform: translateX(-50%) translateY(-6px); }
 
-
-/* Aplica en pantallas táctiles (sin hover) */
+/* Mobile touch feedback */
 @media (hover: none) and (pointer: coarse) {
-  .btn {
-    transition: transform 0.15s ease, box-shadow 0.15s ease;
-  }
-
+  .btn { transition: transform 0.15s ease, box-shadow 0.15s ease; }
   .btn:active {
-    transform: scale(0.96); /* se hunde un poco */
-    box-shadow: 0 0 12px rgba(255, 255, 255, 0.25); /* brilla leve */
+    transform: scale(0.96);
+    box-shadow: 0 0 12px rgba(255, 255, 255, 0.25);
   }
 }
 
-/* src/assets/theme.css */
 
-body {
-  background: url('/images/burguerr.png') no-repeat center center fixed;
-  background-size: cover;
-  background-color: #121212; /* fallback si no carga la imagen */
-  color: #f8f9fa; /* texto claro por defecto */
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-}
-
-/* Checkout card */
-.card.checkout-card {
-  background-color: rgba(33, 37, 41, 0.9); /* negro con opacidad */
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-}
-
-/* Inputs oscuros */
-.form-control, .form-select, textarea {
-  background-color: #2c2c2c !important;
-  color: #f8f9fa !important;
+.input-dark {
+  background: var(--surface);
+  color: var(--text) !important;
   border: 1px solid #444;
-}
-
-.form-control:focus, .form-select:focus, textarea:focus {
-  background-color: #3a3a3a !important;
-  border-color: #ffb300; /* acento amarillo hamburguesa */
-  box-shadow: 0 0 0 0.25rem rgba(255, 179, 0, 0.25);
-}
-
-/* Botones */
-.btn-warning {
-  background-color: #ffb300;
-  border: none;
-  color: #212529;
-  font-weight: bold;
-}
-
-.btn-warning:hover {
-  background-color: #e0a800;
-  color: #212529;
-}
-
-
-/* Títulos en checkout */
-.checkout-card h2,
-.checkout-card .card-title {
-  color: #ffb300; /* Amarillo hamburguesa */
-  font-weight: bold;
-}
-
-/* Labels de formularios */
-.checkout-card .form-label {
-  color: #f1f1f1; /* gris muy claro */
-}
-
-/* Texto normal */
-.checkout-card,
-.checkout-card p,
-.checkout-card label {
-  color: #e0e0e0;
-}
-
-/* Placeholder más claro */
-::placeholder {
-  color: #b5b5b5 !important;
-  opacity: 1;
-}
-
-/* Alertas (total a pagar) */
-.checkout-card .alert {
-  background-color: #ffb300;
-  color: #212529;
-  font-weight: bold;
-}
-
-/* Botones */
-.btn-warning {
-  background-color: #ffb300;
-  border: none;
-  color: #212529;
-  font-weight: bold;
-}
-.btn-warning:hover {
-  background-color: #e09e00;
 }

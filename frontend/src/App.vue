@@ -71,7 +71,7 @@ function vaciar(){ carrito.value = [] }
         <button class="btn btn-primary btn-lg" @click="go('/checkout'); showCart=false">
           Ir a Checkout
         </button>
-        <button class="btn btn-outline-danger btn-lg" @click="vaciar">Vaciar carrito</button>
+        <button class="btn btn-outline-warning btn-lg" @click="vaciar">Vaciar carrito</button>
         <button class="btn btn-secondary btn-lg" @click="showCart=false">Cerrar</button>
       </div>
     </div>
@@ -101,8 +101,8 @@ function vaciar(){ carrito.value = [] }
   top: 0; right: 0; bottom: 0;
   width: 90%;
   max-width: 380px;
-  background: #1a1a1a;
-  color: #f7f7f7;
+  background: var(--surface);
+  color: var(--text);
   transform: translateX(100%);
   transition: transform .3s ease;
   padding: 1rem;
@@ -118,7 +118,7 @@ function vaciar(){ carrito.value = [] }
   font-size: 1.4rem;
   text-align: center;
   margin-bottom: .8rem;
-  color: #ff4444;
+  color: var(--primary); /* rojo tomate */
 }
 .drawer-actions {
   margin-top: 1rem;
@@ -141,7 +141,7 @@ function vaciar(){ carrito.value = [] }
 .mobile-bar {
   position: fixed;
   bottom: 0; left: 0; right: 0;
-  background: #141414;
+  background: var(--bg);
   border-top: 1px solid #333;
   display: flex;
   justify-content: space-around;
@@ -160,15 +160,18 @@ function vaciar(){ carrito.value = [] }
 }
 .drawer .btn-ghost {
   border: 1px solid #555;
-  color: #eee;
+  color: var(--muted);
   background: transparent;
 }
 .drawer .btn-ghost:hover {
   background: #333;
 }
 .drawer .btn-primary {
-  background: #E6382B;
+  background: var(--primary);
   border: none;
+}
+.drawer .btn-primary:hover {
+  filter: brightness(1.1);
 }
 
 /* Toast (mantiene lo que ya tenías) */

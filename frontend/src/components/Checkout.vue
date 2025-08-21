@@ -43,6 +43,7 @@ function formateaDir(d) {
 }
 
 async function armaPayload() {
+  // items al formato que espera el backend
   const items = carritoItems.value.map(i => ({
     nombre_producto: i.nombre,
     cantidad: 1,
@@ -51,32 +52,51 @@ async function armaPayload() {
     subtotal: i.total
   }));
 
-  if (!form.value.nombre || !form.value.telefono) throw new Error("Faltan nombre y/o teléfono");
-  if (!items.length) throw new Error("El carrito está vacío");
+  // valida nombre y teléfono
+  if (!form.value.nombre || !form.value.telefono) {
+    throw new Error("Faltan nombre y/o teléfono");
+  }
+
+  // validación estricta de 10 dígitos
+  const limpioTel = String(form.value.telefono).replace(/\D/g, "");
+  if (!/^\d{10}$/.test(limpioTel)) {
+    throw new Error("Teléfono inválido. Debe tener exactamente 10 dígitos.");
+  }
+
+  if (!items.length) {
+    throw new Error("El carrito está vacío");
+  }
 
   const base = {
     user_id: userId.value ? Number(userId.value) : null,
     nombre: form.value.nombre,
-    telefono: form.value.telefono,
+    telefono: limpioTel,
     total: Number(totalCarrito.value).toFixed(2),
     pedido: items
   };
 
+  // Caso A: no logueado → solo texto
   if (!userId.value || seleccion.value === "texto") {
-    if (!direccionTexto.value.trim()) throw new Error("Falta la dirección de entrega");
+    if (!direccionTexto.value.trim()) {
+      throw new Error("Falta la dirección de entrega");
+    }
     return { ...base, direccion_entrega: direccionTexto.value.trim() };
   }
 
+  // Caso B: logueado + elige una guardada
   if (seleccion.value?.startsWith("id:")) {
     const id = Number(seleccion.value.split(":")[1]);
     if (!id) throw new Error("Dirección seleccionada inválida");
     return { ...base, direccion_id: id };
   }
 
+  // Caso C: logueado + nueva dirección
   if (seleccion.value === "nueva") {
     const partes = [nueva.value.calle, nueva.value.colonia, nueva.value.ciudad].filter(Boolean);
     if (!partes.length) throw new Error("Completa al menos calle, colonia y ciudad");
-    const snap = nueva.value.referencias ? `${partes.join(", ")}, Ref: ${nueva.value.referencias}` : partes.join(", ");
+    const snap = nueva.value.referencias
+      ? `${partes.join(", ")}, Ref: ${nueva.value.referencias}`
+      : partes.join(", ");
 
     if (nueva.value.guardar) {
       const creado = await crearDireccion({
@@ -93,6 +113,7 @@ async function armaPayload() {
     return { ...base, direccion_entrega: snap };
   }
 
+  // fallback si no eligió nada
   throw new Error("Selecciona una dirección o escribe la dirección de entrega");
 }
 
@@ -152,7 +173,7 @@ function enviarAlNegocio() {
       nombre_producto: i.nombre,
       cantidad: 1,
       subtotal: i.total,
-      toppings: i.toppings || [],
+      toppings: (i.toppings || []).map(t => `${t.nombre}${t.precio ? ` (+$${t.precio})` : ''}`),
       sin_ingredientes: i.sin_ingredientes || []
     })),
     total: dataPedido.value.total,
@@ -174,13 +195,22 @@ function compartirConCliente() {
       nombre_producto: i.nombre,
       cantidad: 1,
       subtotal: i.total,
-      toppings: i.toppings || [],
+      toppings: (i.toppings || []).map(t => `${t.nombre}${t.precio ? ` (+$${t.precio})` : ''}`),
       sin_ingredientes: i.sin_ingredientes || []
     })),
     total: dataPedido.value.total,
     direccionEntrega: dataPedido.value.direccion_entrega
   });
 }
+
+function validarTelefono(tel) {
+  // quita espacios y guiones
+  const limpio = String(tel).replace(/\D/g, "");
+  // acepta solo si tiene exactamente 10 dígitos
+  return /^\d{10}$/.test(limpio);
+}
+
+
 
 async function nuevoPedido({ limpiar = true, pedirConfirmacion = true, irMenu = true } = {}) {
   try {
@@ -207,6 +237,19 @@ async function nuevoPedido({ limpiar = true, pedirConfirmacion = true, irMenu = 
     console.error(e)
   }
 }
+
+const pagar = async () => {
+  const res = await fetch("http://localhost:5000/api/pagos/checkout", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ items: carrito })  // 👈 mandamos todo el carrito
+  })
+  const data = await res.json()
+  if (data.init_point) {
+    window.location.href = data.init_point
+  }
+}
+
 </script>
 
 <template>
@@ -218,11 +261,11 @@ async function nuevoPedido({ limpiar = true, pedirConfirmacion = true, irMenu = 
         <!-- Datos del cliente -->
         <div class="mb-3">
           <label class="form-label">Nombre</label>
-          <input v-model="form.nombre" class="form-control" placeholder="Tu nombre" />
+          <input v-model="form.nombre" class="form-control input-dark" placeholder="Tu nombre" />
         </div>
         <div class="mb-3">
           <label class="form-label">Teléfono</label>
-          <input v-model="form.telefono" class="form-control" placeholder="Ej: 7441234567" />
+          <input v-model="form.telefono" class="form-control input-dark" placeholder="Ej: 7441234567" />
         </div>
 
         <!-- Direcciones -->
@@ -240,16 +283,16 @@ async function nuevoPedido({ limpiar = true, pedirConfirmacion = true, irMenu = 
 
             <div v-if="seleccion==='nueva'" class="row g-2 mb-2">
               <div class="col-md-6">
-                <input v-model="nueva.calle" class="form-control" placeholder="Calle y número" />
+                <input v-model="nueva.calle" class="form-control input-dark" placeholder="Calle y número" />
               </div>
               <div class="col-md-6">
-                <input v-model="nueva.colonia" class="form-control" placeholder="Colonia" />
+                <input v-model="nueva.colonia" class="form-control input-dark" placeholder="Colonia" />
               </div>
               <div class="col-md-6">
-                <input v-model="nueva.ciudad" class="form-control" placeholder="Ciudad" />
+                <input v-model="nueva.ciudad" class="form-control input-dark" placeholder="Ciudad" />
               </div>
               <div class="col-md-6">
-                <input v-model="nueva.referencias" class="form-control" placeholder="Referencias" />
+                <input v-model="nueva.referencias" class="form-control input-dark" placeholder="Referencias" />
               </div>
               <div class="form-check mt-2">
                 <input class="form-check-input" type="checkbox" v-model="nueva.guardar" />
@@ -257,11 +300,11 @@ async function nuevoPedido({ limpiar = true, pedirConfirmacion = true, irMenu = 
               </div>
             </div>
 
-            <textarea v-if="seleccion==='texto'" v-model="direccionTexto" class="form-control" rows="2" placeholder="Escribe la dirección completa"></textarea>
+            <textarea v-if="seleccion==='texto'" v-model="direccionTexto" class="form-control input-dark" rows="2" placeholder="Escribe la dirección completa"></textarea>
           </template>
 
           <template v-else>
-            <textarea v-model="direccionTexto" class="form-control" rows="2" placeholder="Escribe la dirección completa"></textarea>
+            <textarea v-model="direccionTexto" class="form-control input-dark" rows="2" placeholder="Escribe la dirección completa"></textarea>
           </template>
         </div>
 
@@ -275,6 +318,15 @@ async function nuevoPedido({ limpiar = true, pedirConfirmacion = true, irMenu = 
           <button class="btn btn-success btn-lg" @click="confirmarPedido" :disabled="enviando || pedidoConfirmado">
             {{ enviando ? 'Enviando...' : (pedidoConfirmado ? 'Pedido creado' : 'Confirmar pedido') }}
           </button>
+          <button @click="pagar({ nombre: 'Hamburguesa Clásica', precio: 75, cantidad: 1 })">
+            Pagar con MercadoPago 💳
+          </button>
+          <!-- Botón volver al menú (solo si NO hay pedido confirmado) -->
+          <router-link 
+            v-if="!pedidoConfirmado" 
+            to="/menu" class="btn btn-outline-light">
+            ⬅️ Volver al Menú
+          </router-link>
           <div class="form-check text-center">
             <input type="checkbox" class="form-check-input me-2" v-model="abrirWhatsAuto" />
             <label class="form-check-label">Abrir WhatsApp al confirmar</label>

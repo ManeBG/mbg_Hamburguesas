@@ -14,7 +14,7 @@
       </select>
 
       <input v-model="q" @keyup.enter="cargar" class="input" placeholder="Buscar nombre o teléfono" />
-      <button @click="cargar" class="btn">Actualizar</button>
+      <button @click="cargar" class="btn btn-primary">Actualizar</button>
     </div>
 
     <div v-if="cargando">Cargando…</div>
@@ -22,7 +22,13 @@
     <table v-else class="tbl">
       <thead>
         <tr>
-          <th>#</th><th>Cliente / Dirección</th><th>Teléfono</th><th>Total</th><th>Estado</th><th>Fecha</th><th>Acciones</th>
+          <th>#</th>
+          <th>Cliente / Dirección</th>
+          <th>Teléfono</th>
+          <th>Total</th>
+          <th>Estado</th>
+          <th>Fecha</th>
+          <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
@@ -31,7 +37,7 @@
             <td>{{ p.id }}</td>
             <td>
               <div class="strong">{{ p.nombre || '—' }}</div>
-              <div class="muted">{{ p.direccion || 'Sin dirección' }}</div>
+              <div class="direccion">{{ p.direccion || 'Sin dirección' }}</div>
             </td>
             <td>
               <a :href="'https://wa.me/52' + (p.telefono || '')" target="_blank">
@@ -40,14 +46,21 @@
             </td>
             <td>${{ Number(p.total).toFixed(2) }}</td>
             <td>
-              <span class="badge" :style="badgeStyle(p.estado)">{{ etiquetaEstado(p.estado) }}</span>
+              <span class="badge" :style="badgeStyle(p.estado)">
+                {{ etiquetaEstado(p.estado) }}
+              </span>
             </td>
             <td>{{ formatearFecha(p.creado_en) }}</td>
             <td>
               <div class="acciones">
                 <button class="btn-ghost" @click="toggleDetalles(p.id)">Detalles</button>
                 <button class="btn-ghost" @click="abrirWhats(p)">WhatsApp</button>
-                <button v-for="e in nextEstados(p.estado)" :key="e" class="btn" @click="cambiarEstado(p, e)">
+                <button
+                  v-for="e in nextEstados(p.estado)"
+                  :key="e"
+                  class="btn btn-primary"
+                  @click="cambiarEstado(p, e)"
+                >
                   Marcar {{ etiquetaEstado(e) }}
                 </button>
               </div>
@@ -109,7 +122,6 @@ function startAutoRefresh(){
   stopAutoRefresh()
   if (typeof window === 'undefined') return
   timer = window.setInterval(() => {
-    // si la pestaña está oculta, no spameamos fetch
     if (typeof document !== 'undefined' && document.hidden) return
     cargar()
   }, 10000)
@@ -162,7 +174,7 @@ function toggleDetalles(id){
 async function cargar(){
   if (cargando.value) return
   cargando.value = true
-  try{
+  try {
     const params = new URLSearchParams()
     if (filtroEstado.value && filtroEstado.value !== 'todos') params.set('estado', filtroEstado.value)
     if (q.value) params.set('q', q.value)
@@ -171,12 +183,28 @@ async function cargar(){
 
     const res = await fetch(`/api/admin/pedidos?${params.toString()}`)
     const j = await res.json()
-    pedidos.value = j.pedidos || []
+    const nuevos = j.pedidos || []
     total.value = j.total || 0
-  }catch(err){
+
+    // 🔹 Actualización parcial en vez de reemplazar todo
+    const mapExist = new Map(pedidos.value.map(p => [p.id, p]))
+    nuevos.forEach(nuevo => {
+      if (mapExist.has(nuevo.id)) {
+        // actualiza datos del pedido existente
+        Object.assign(mapExist.get(nuevo.id), nuevo)
+      } else {
+        // inserta pedido nuevo
+        pedidos.value.unshift(nuevo)
+      }
+    })
+    // opcional: si backend ya no devuelve un pedido viejo, lo mantenemos (no se borra scroll)
+    // si quieres que desaparezcan pedidos que ya no vienen, descomenta esta línea:
+    // pedidos.value = pedidos.value.filter(p => nuevos.find(n => n.id === p.id))
+
+  } catch(err) {
     console.error(err)
     Swal.fire('Ups', 'No pude cargar pedidos', 'error')
-  }finally{
+  } finally {
     cargando.value = false
   }
 }
@@ -245,19 +273,82 @@ function abrirWhats(p){
 
 
 <style scoped>
-.title{ font-weight:700; font-size:1.25rem; }
-.toolbar{ display:flex; gap:.5rem; align-items:center; margin:.75rem 0; flex-wrap:wrap; }
-.input{ border:1px solid #d1d5db; border-radius:8px; padding:.4rem .6rem; }
-.btn{ border:1px solid #111827; background:#111827; color:white; border-radius:8px; padding:.35rem .6rem; }
-.btn-ghost{ border:1px solid #070707; background:rgb(7, 7, 7); border-radius:8px; padding:.35rem .6rem; }
-.tbl{ width:100%; border-collapse:collapse; }
-.tbl th,.tbl td{ text-align:left; padding:.5rem .5rem; border-bottom:1px solid #0d0d0e; vertical-align:top; }
-.muted{ font-size:12px; color:#000000; max-width:520px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
-.strong{ font-weight:600; }
-.acciones{ display:flex; flex-wrap:wrap; gap:.4rem; }
-.detalles{ background:#727274; }
-.lista-detalles{ display:grid; gap:.5rem; padding:.75rem; margin:0; }
-.item{ border:1px solid #e5e7eb; border-radius:8px; padding:.5rem .6rem; background:rgb(175, 141, 28); list-style:none; }
-.paginador{ margin-top:.75rem; display:flex; align-items:center; gap:.5rem; }
-.badge{ display:inline-block; }
+.title {
+  font-weight: 700;
+  font-size: var(--fs-h2);
+  margin-bottom: 1rem;
+  color: var(--accent);
+}
+.toolbar {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  margin: .75rem 0;
+  flex-wrap: wrap;
+}
+.input {
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: .45rem .6rem;
+  background: var(--surface);
+  color: var(--text);
+}
+.tbl {
+  width: 100%;
+  border-collapse: collapse;
+  color: var(--text);
+}
+.tbl th, .tbl td {
+  text-align: left;
+  padding: .5rem .5rem;
+  border-bottom: 1px solid #222;
+  vertical-align: top;
+}
+.direccion {
+  font-size: 0.85rem;
+  color: var(--muted);
+  max-width: 520px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.muted {
+  font-size: 0.85rem;
+  color: var(--muted);
+}
+.strong {
+  font-weight: 600;
+}
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .4rem;
+}
+.detalles {
+  background: var(--surface);
+}
+.lista-detalles {
+  display: grid;
+  gap: .5rem;
+  padding: .75rem;
+  margin: 0;
+}
+.item {
+  border: 1px solid #333;
+  border-radius: 8px;
+  padding: .5rem .6rem;
+  background: #1f1f1f;
+  color: var(--text);
+  list-style: none;
+}
+.paginador {
+  margin-top: .75rem;
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+}
+.badge {
+  display: inline-block;
+  font-weight: 600;
+}
 </style>

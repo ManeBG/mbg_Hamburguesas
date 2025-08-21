@@ -205,18 +205,18 @@ function showToast(text){
 </template>
 
 <style scoped>
-/* 🎨 Estilo Retro Gourmet Oscuro */
+/* 🎨 Estilo PlatilloCard usando theme.css */
 .retro-dark {
-  background: #1a1a1a;   /* Fondo oscuro */
-  color: #f5f5f5;        /* Texto claro */
-  border-radius: 14px;
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius);
 }
 .retro-dark .card-title {
-  color: #ff4444;         /* Rojo apetitoso */
+  color: var(--primary);    /* Rojo tomate */
   font-family: 'Bebas Neue', sans-serif;
 }
 .retro-dark .price {
-  color: #ffcc00;         /* Dorado/cheddar */
+  color: var(--accent);     /* Amarillo cheddar */
   font-size: 1.3rem;
   font-weight: bold;
 }
@@ -227,14 +227,12 @@ function showToast(text){
 .add-btn.adding { filter: brightness(1.1); }
 
 /* Opciones (checkbox estilizados) */
-.opt { background:#171717; border:1px solid #262626; border-radius:12px; padding:.6rem .8rem; }
+.opt { background: var(--bg); border:1px solid #262626; border-radius:12px; padding:.6rem .8rem; }
 .opt + .opt { margin-top:.5rem; }
-.opt summary { cursor:pointer; font-weight:600; margin-bottom:.4rem; }
+.opt summary { cursor:pointer; font-weight:600; margin-bottom:.4rem; color: var(--muted); }
 .opt-grid { display:grid; grid-template-columns: 1fr; gap:.35rem; margin-top:.5rem; }
 @media (min-width: 768px) { .opt-grid { grid-template-columns: 1fr 1fr; gap: .75rem 1rem;} }
-.opt-row { display:flex; align-items:center; justify-content: space-between; gap:.5rem; background: transparent;}
-.opt-row input { margin-right: .5rem; }
-.opt-row em { margin-left: auto; font-style: normal; opacity: .9; white-space: nowrap; }
+.opt-row { display:flex; align-items:center; justify-content: space-between; gap:.5rem; background: transparent; color: var(--text); }
 .fixed { opacity:.6; margin-left:.25rem; }
 
 /* Imagen efecto hover */
@@ -246,11 +244,12 @@ function showToast(text){
 .card:hover .card-img-top { transform: scale(1.05); }
 
 .topping-price {
-  color: #ffcc00;      /* amarillo cheddar */
+  color: var(--accent);
   font-weight: 600;
   font-size: 0.95rem;
-  white-space: nowrap; /* evita que se corte */
+  white-space: nowrap;
 }
+
 
 
 </style>
