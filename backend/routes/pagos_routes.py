@@ -12,35 +12,44 @@ def checkout():
     data = request.json or {}
     print("📩 Datos recibidos:", data)
 
-    # Extraer con .get para evitar errores
-    nombre = data.get("nombre", "Producto sin nombre")
-    cantidad = int(data.get("cantidad", 1))
-    precio = float(data.get("precio", 0))
-
-    # Validaciones básicas
-    if precio <= 0:
-        return jsonify(error="Precio inválido"), 400
+    items = data.get("items", [])
+    if not items:
+        return jsonify(error="Carrito vacío"), 400
 
     preference_data = {
         "items": [
             {
-                "title": nombre,
-                "quantity": cantidad,
-                "unit_price": precio,
+                "title": item.get("nombre", "Producto"),
+                "quantity": int(item.get("cantidad", 1)),
+                # 👇 usamos precio_base (unitario) o total/cantidad
+                "unit_price": float(item.get("precio_base", item.get("total", 0))),
                 "currency_id": "MXN",
             }
+            for item in items
         ],
         "back_urls": {
-            "success": "http://localhost:5173/success",
-            "failure": "http://localhost:5173/failure",
-            "pending": "http://localhost:5173/pending",
+            "success": "https://mbgzone.com/success",
+            "failure": "https://mbgzone.com/failure",
+            "pending": "https://mbgzone.com/pending",
         },
         "auto_return": "approved",
+        # "auto_return": "approved", por ahora en  produccion sin autoreturn
     }
 
     try:
         preference = sdk.preference().create(preference_data)
-        return jsonify({"init_point": preference["response"]["init_point"]})
+        print("✅ Respuesta completa MercadoPago:", preference)
+        
+        init_point = (
+            preference["response"].get("init_point")
+            or preference["response"].get("sandbox_init_point")
+        )
+
+        if not init_point:
+            return jsonify(error="No se pudo generar el link de pago"), 400
+
+        return jsonify({"init_point": init_point})
+
     except Exception as e:
         print("❌ Error MercadoPago:", str(e))
         return jsonify(error=str(e)), 400

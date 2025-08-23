@@ -7,6 +7,8 @@ import { carrito, vaciarCarrito } from "@/store";
 import { useRouter } from 'vue-router'
 import Swal from 'sweetalert2'
 import 'sweetalert2/dist/sweetalert2.min.css'
+import { toRaw } from "vue"
+
 
 const form = ref({ nombre: "", telefono: "" });
 const userId = ref(localStorage.getItem("user_id") || null);
@@ -239,11 +241,15 @@ async function nuevoPedido({ limpiar = true, pedirConfirmacion = true, irMenu = 
 }
 
 const pagar = async () => {
+  // 👇 convertir el carrito en objeto plano
+  const items = toRaw(carrito.value)
+
   const res = await fetch("http://localhost:5000/api/pagos/checkout", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ items: carrito })  // 👈 mandamos todo el carrito
+    body: JSON.stringify({ items })  // 👈 backend espera { items: [...] }
   })
+
   const data = await res.json()
   if (data.init_point) {
     window.location.href = data.init_point
@@ -318,9 +324,12 @@ const pagar = async () => {
           <button class="btn btn-success btn-lg" @click="confirmarPedido" :disabled="enviando || pedidoConfirmado">
             {{ enviando ? 'Enviando...' : (pedidoConfirmado ? 'Pedido creado' : 'Confirmar pedido') }}
           </button>
-          <button @click="pagar({ nombre: 'Hamburguesa Clásica', precio: 75, cantidad: 1 })">
+          <button @click="pagar">
             Pagar con MercadoPago 💳
           </button>
+          <!-- <button @click="pagar({ nombre: 'Hamburguesa Clásica', precio: 75, cantidad: 1 })">
+            Pagar con MercadoPago 💳
+          </button> -->
           <!-- Botón volver al menú (solo si NO hay pedido confirmado) -->
           <router-link 
             v-if="!pedidoConfirmado" 
